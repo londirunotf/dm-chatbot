@@ -1,0 +1,347 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="staff-form-container">
+    <div class="page-header">
+        <h2>
+            {% if is_edit %}
+                👨‍💼 職員編集 - {{ staff.name }}
+            {% else %}
+                👨‍💼 新規職員追加
+            {% endif %}
+        </h2>
+        <div class="header-actions">
+            <a href="{{ url_for('admin.staff_list') }}" class="btn btn-secondary">
+                ← 職員一覧に戻る
+            </a>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <form method="POST" class="staff-form">
+            <div class="form-section">
+                <h3>基本情報</h3>
+                
+                {% if not is_edit %}
+                <div class="form-group">
+                    <label for="staff_id" class="required">職員ID</label>
+                    <input type="text" id="staff_id" name="staff_id" 
+                           placeholder="例: STAFF001" required 
+                           value="{{ staff.staff_id if is_edit else '' }}">
+                    <small>英数字で一意のIDを入力してください</small>
+                </div>
+                {% endif %}
+                
+                <div class="form-group">
+                    <label for="name" class="required">職員名</label>
+                    <input type="text" id="name" name="name" 
+                           placeholder="例: 田中太郎" required
+                           value="{{ staff.name if is_edit else '' }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="department">所属部署</label>
+                    <input type="text" id="department" name="department" 
+                           placeholder="例: 総務部"
+                           value="{{ staff.department if is_edit else '' }}">
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h3>権限設定</h3>
+                
+                <div class="form-group">
+                    <label for="role" class="required">役割</label>
+                    <select id="role" name="role" required>
+                        <option value="staff" {% if not is_edit or staff.role == 'staff' %}selected{% endif %}>
+                            職員
+                        </option>
+                        <option value="supervisor" {% if is_edit and staff.role == 'supervisor' %}selected{% endif %}>
+                            主任
+                        </option>
+                        <option value="admin" {% if is_edit and staff.role == 'admin' %}selected{% endif %}>
+                            管理者
+                        </option>
+                    </select>
+                    <small>
+                        <strong>職員:</strong> 基本的なエスカレーション対応<br>
+                        <strong>主任:</strong> 職員の管理と高度な対応<br>
+                        <strong>管理者:</strong> システム全体の管理権限
+                    </small>
+                </div>
+                
+                {% if is_edit %}
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="is_active" name="is_active" 
+                               {% if staff.is_active %}checked{% endif %}>
+                        <label for="is_active">この職員を有効にする</label>
+                    </div>
+                    <small>無効にすると、この職員はシステムにログインできなくなります</small>
+                </div>
+                {% endif %}
+            </div>
+            
+            {% if not is_edit %}
+            <div class="form-section">
+                <h3>ログイン情報</h3>
+                
+                <div class="form-group">
+                    <label for="user_id" class="required">ログインID</label>
+                    <input type="text" id="user_id" name="user_id" 
+                           placeholder="例: tanaka.tarou" required>
+                    <small>ログイン時に使用するIDです</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="required">初期パスワード</label>
+                    <input type="password" id="password" name="password" 
+                           placeholder="8文字以上" required minlength="8">
+                    <small>職員にはパスワード変更を推奨してください</small>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    {% if is_edit %}
+                        💾 更新
+                    {% else %}
+                        ➕ 追加
+                    {% endif %}
+                </button>
+                <a href="{{ url_for('admin.staff_list') }}" class="btn btn-secondary">
+                    キャンセル
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.staff-form-container {
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.form-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    padding: 30px;
+    margin-top: 20px;
+}
+
+.staff-form {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.form-section {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.form-section h3 {
+    margin: 0 0 20px 0;
+    color: #00695C;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 18px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.form-group label.required::after {
+    content: ' *';
+    color: #FF5722;
+}
+
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #00BFA5;
+    box-shadow: 0 0 0 3px rgba(0, 191, 165, 0.1);
+}
+
+.form-group small {
+    display: block;
+    color: #666;
+    font-size: 12px;
+    margin-top: 4px;
+    line-height: 1.4;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+.checkbox-group label {
+    margin: 0;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #00BFA5, #00897B);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 191, 165, 0.3);
+}
+
+.btn-secondary {
+    background: #f5f5f5;
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+.btn-secondary:hover {
+    background: #e0e0e0;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .staff-form-container {
+        padding: 10px;
+    }
+    
+    .form-container {
+        padding: 20px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // フォームバリデーション
+    const form = document.querySelector('.staff-form');
+    const staffIdInput = document.getElementById('staff_id');
+    const userIdInput = document.getElementById('user_id');
+    
+    // 職員IDの自動生成提案
+    if (staffIdInput && !staffIdInput.value) {
+        const nameInput = document.getElementById('name');
+        nameInput.addEventListener('input', function() {
+            if (!staffIdInput.value && this.value) {
+                // 名前からIDを自動提案（簡単な例）
+                const suggestion = 'STAFF' + String(Date.now()).slice(-3);
+                staffIdInput.placeholder = `提案: ${suggestion}`;
+            }
+        });
+    }
+    
+    // ユーザーIDの自動生成提案
+    if (userIdInput && !userIdInput.value) {
+        const nameInput = document.getElementById('name');
+        nameInput.addEventListener('input', function() {
+            if (!userIdInput.value && this.value) {
+                // 名前からログインIDを自動提案
+                const suggestion = this.value.toLowerCase()
+                    .replace(/\s+/g, '.')
+                    .replace(/[^\w.]/g, '');
+                userIdInput.placeholder = `提案: ${suggestion}`;
+            }
+        });
+    }
+    
+    // パスワード強度チェック
+    const passwordInput = document.getElementById('password');
+    if (passwordInput) {
+        passwordInput.addEventListener('input', function() {
+            const password = this.value;
+            const strength = checkPasswordStrength(password);
+            
+            // 既存の警告を削除
+            const existingWarning = this.parentNode.querySelector('.password-warning');
+            if (existingWarning) {
+                existingWarning.remove();
+            }
+            
+            if (password.length >= 4 && strength < 3) {
+                const warning = document.createElement('small');
+                warning.className = 'password-warning';
+                warning.style.color = '#FF5722';
+                warning.textContent = 'パスワードをより強力にすることを推奨します（大文字・小文字・数字を含む）';
+                this.parentNode.appendChild(warning);
+            }
+        });
+    }
+});
+
+function checkPasswordStrength(password) {
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+    return strength;
+}
+</script>
+{% endblock %}

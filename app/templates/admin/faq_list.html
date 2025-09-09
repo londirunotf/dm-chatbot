@@ -1,0 +1,272 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="faq-management">
+    <div class="page-header">
+        <h2>FAQ管理</h2>
+        <div class="header-buttons">
+            <button id="addFaqBtn" class="btn btn-primary">
+                ➕ FAQ追加
+            </button>
+            <a href="{{ url_for('admin.bulk_import_faq') }}" class="btn btn-secondary">
+                📥 一括取り込み
+            </a>
+            <div class="dropdown">
+                <button class="btn btn-outline dropdown-toggle" type="button" onclick="toggleDropdown()">
+                    📤 エクスポート
+                </button>
+                <div id="exportDropdown" class="dropdown-menu">
+                    <a class="dropdown-item" href="{{ url_for('admin.export_faq', format='csv') }}">
+                        📊 CSV形式
+                    </a>
+                    <a class="dropdown-item" href="{{ url_for('admin.export_faq', format='json') }}">
+                        📄 JSON形式
+                    </a>
+                    <a class="dropdown-item" href="{{ url_for('admin.export_faq', format='excel') }}">
+                        📈 Excel形式
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+
+    <div class="faq-stats">
+        <div class="stat-item">
+            <span class="count">{{ faqs|length }}</span>
+            <span class="label">総FAQ数</span>
+        </div>
+        <div class="stat-item">
+            <span class="count">{{ faqs|selectattr('is_active')|list|length }}</span>
+            <span class="label">アクティブ</span>
+        </div>
+        <div class="stat-item">
+            <span class="count">{{ faqs|rejectattr('is_active')|list|length }}</span>
+            <span class="label">非アクティブ</span>
+        </div>
+    </div>
+    
+    <div class="faq-table-container">
+        <table class="faq-table">
+            <thead>
+                <tr>
+                    <th>状態</th>
+                    <th>タイトル</th>
+                    <th>カテゴリ</th>
+                    <th>参照回数</th>
+                    <th>作成日</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for faq in faqs %}
+                <tr class="{% if not faq.is_active %}inactive{% endif %}">
+                    <td>
+                        <span class="status-badge {% if faq.is_active %}active{% else %}inactive{% endif %}">
+                            {% if faq.is_active %}アクティブ{% else %}非アクティブ{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="faq-title">{{ faq.title }}</div>
+                        <div class="faq-preview">{{ faq.question[:100] }}...</div>
+                    </td>
+                    <td>{{ faq.category or '未分類' }}</td>
+                    <td>{{ faq.view_count }}</td>
+                    <td>{{ faq.created_at.strftime('%Y/%m/%d') if faq.created_at else '-' }}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-icon edit-btn" data-faq-id="{{ faq.id }}" title="編集">
+                                ✏️
+                            </button>
+                            <button class="btn-icon toggle-btn" data-faq-id="{{ faq.id }}" data-active="{{ faq.is_active|lower }}" title="{% if faq.is_active %}非アクティブ化{% else %}アクティブ化{% endif %}">
+                                {% if faq.is_active %}👁️{% else %}🚫{% endif %}
+                            </button>
+                            <button class="btn-icon delete-btn" data-faq-id="{{ faq.id }}" title="削除">
+                                🗑️
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="no-data">FAQがありません。新しいFAQを追加してください。</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- FAQ編集モーダル -->
+<div id="faqModal" class="modal">
+    <div class="modal-content large">
+        <span class="modal-close">&times;</span>
+        <h3 id="modalTitle">FAQ追加</h3>
+        
+        <form id="faqForm" class="faq-form">
+            <input type="hidden" id="faqId" name="faq_id">
+            
+            <div class="form-group">
+                <label for="faqTitle">タイトル <span class="required">*</span></label>
+                <input type="text" id="faqTitle" name="title" required maxlength="200">
+            </div>
+            
+            <div class="form-group">
+                <label for="faqCategory">カテゴリ</label>
+                <select id="faqCategory" name="category">
+                    <option value="">未分類</option>
+                    <option value="基本操作">基本操作</option>
+                    <option value="エラー対応">エラー対応</option>
+                    <option value="送信ルール">送信ルール</option>
+                    <option value="その他">その他</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="faqQuestion">質問内容 <span class="required">*</span></label>
+                <textarea id="faqQuestion" name="question" rows="4" required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="faqAnswer">回答内容 <span class="required">*</span></label>
+                <textarea id="faqAnswer" name="answer" rows="6" required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="faqKeywords">検索キーワード（カンマ区切り）</label>
+                <input type="text" id="faqKeywords" name="keywords" placeholder="例: DM,送信,エラー">
+                <small>ユーザーが検索しやすいキーワードを入力してください</small>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="faqActive" name="is_active" checked>
+                    このFAQをアクティブにする
+                </label>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancelBtn">キャンセル</button>
+                <button type="submit" class="btn btn-primary">保存</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.header-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.dropdown {
+    position: relative;
+}
+
+.dropdown-toggle {
+    background: white;
+    border: 1px solid #dee2e6;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.dropdown-toggle:after {
+    content: '▼';
+    font-size: 0.8em;
+    margin-left: 5px;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    min-width: 150px;
+    z-index: 1000;
+    display: none;
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+.dropdown-item {
+    display: block;
+    padding: 8px 16px;
+    text-decoration: none;
+    color: #212529;
+    white-space: nowrap;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    text-decoration: none;
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .header-buttons {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// FAQ データを JavaScript で使用 (JSON serialization error を回避)
+window.faqData = [
+    {% for faq in faqs %}
+    {
+        id: {{ faq.id }},
+        title: {{ faq.title|tojson }},
+        question: {{ faq.question|tojson }},
+        answer: {{ faq.answer|tojson }},
+        keywords: {{ faq.keywords|tojson }},
+        category: {{ faq.category|tojson }},
+        is_active: {{ faq.is_active|tojson }},
+        view_count: {{ faq.view_count }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
+
+// ドロップダウンメニューの制御
+function toggleDropdown() {
+    const dropdown = document.getElementById('exportDropdown');
+    dropdown.classList.toggle('show');
+}
+
+// ドロップダウン外をクリックしたら閉じる
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('exportDropdown');
+    const toggle = document.querySelector('.dropdown-toggle');
+    
+    if (!toggle.contains(event.target)) {
+        dropdown.classList.remove('show');
+    }
+});
+</script>
+{% endblock %}

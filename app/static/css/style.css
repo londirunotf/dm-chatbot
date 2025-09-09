@@ -1,0 +1,1392 @@
+/* アクセシビリティを重視したスタイル */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* 画像最適化設定 */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+}
+
+/* アイコン画像の最適化 */
+.chat-icon, .user-icon, .bot-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.icon-small { width: 16px; height: 16px; }
+.icon-medium { width: 24px; height: 24px; }
+.icon-large { width: 48px; height: 48px; }
+
+body {
+    font-family: 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
+    font-size: 18px; /* 大きな文字サイズ */
+    line-height: 1.6;
+    color: #37474F;
+    background: linear-gradient(135deg, #FAFAFA 0%, #F5F5F5 100%);
+    transition: font-size 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+}
+
+/* フォントサイズ調整クラス */
+body.font-small { font-size: 14px !important; }
+body.font-medium { font-size: 18px !important; }
+body.font-large { font-size: 22px !important; }
+body.font-xlarge { font-size: 26px !important; }
+
+/* フォントサイズに応じた要素の調整 - より包括的 */
+body.font-small,
+body.font-small p, body.font-small div, body.font-small span, body.font-small label,
+body.font-small .faq-title, body.font-small .faq-preview, body.font-small .message-bubble,
+body.font-small button, body.font-small input, body.font-small textarea,
+body.font-small .nav-link { font-size: 14px !important; }
+
+body.font-small .faq-header h2 { font-size: 18px !important; }
+body.font-small .app-header h1 { font-size: 24px !important; }
+
+body.font-medium,
+body.font-medium p, body.font-medium div, body.font-medium span, body.font-medium label,
+body.font-medium .faq-title, body.font-medium .faq-preview, body.font-medium .message-bubble,
+body.font-medium button, body.font-medium input, body.font-medium textarea,
+body.font-medium .nav-link { font-size: 18px !important; }
+
+body.font-medium .faq-header h2 { font-size: 22px !important; }
+body.font-medium .app-header h1 { font-size: 28px !important; }
+
+body.font-large,
+body.font-large p, body.font-large div, body.font-large span, body.font-large label,
+body.font-large .faq-title, body.font-large .faq-preview, body.font-large .message-bubble,
+body.font-large button, body.font-large input, body.font-large textarea,
+body.font-large .nav-link { font-size: 22px !important; }
+
+body.font-large .faq-header h2 { font-size: 26px !important; }
+body.font-large .app-header h1 { font-size: 32px !important; }
+
+body.font-xlarge,
+body.font-xlarge p, body.font-xlarge div, body.font-xlarge span, body.font-xlarge label,
+body.font-xlarge .faq-title, body.font-xlarge .faq-preview, body.font-xlarge .message-bubble,
+body.font-xlarge button, body.font-xlarge input, body.font-xlarge textarea,
+body.font-xlarge .nav-link { font-size: 26px !important; }
+
+body.font-xlarge .faq-header h2 { font-size: 30px !important; }
+body.font-xlarge .app-header h1 { font-size: 36px !important; }
+
+/* ハイコントラストモード */
+body.high-contrast {
+    background-color: #000;
+    color: #fff;
+}
+
+body.high-contrast .app-header {
+    background-color: #333;
+}
+
+body.high-contrast .chat-container {
+    background-color: #000;
+}
+
+body.high-contrast .faq-sidebar {
+    background-color: #111;
+    border-color: #fff;
+}
+
+body.high-contrast .faq-item {
+    background-color: #222;
+    border-color: #fff;
+    color: #fff;
+}
+
+body.high-contrast .faq-item:hover {
+    background-color: #333;
+}
+
+body.high-contrast .faq-header {
+    background-color: #111;
+    color: #fff;
+    border-bottom-color: #fff;
+}
+
+body.high-contrast .faq-header h2 {
+    color: #fff !important;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+
+body.high-contrast .faq-title {
+    color: #fff !important;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+
+body.high-contrast .faq-preview {
+    color: #ddd !important;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+
+body.high-contrast .chat-area {
+    background-color: #000;
+}
+
+body.high-contrast .message-bubble {
+    background-color: #333;
+    color: #fff;
+    border-color: #fff;
+}
+
+body.high-contrast .user-message .message-bubble {
+    background-color: #444;
+}
+
+body.high-contrast .chat-input-container {
+    background-color: #111;
+    border-color: #fff;
+}
+
+body.high-contrast textarea, 
+body.high-contrast input {
+    background-color: #222;
+    color: #fff;
+    border-color: #fff;
+}
+
+body.high-contrast button {
+    background-color: #333;
+    color: #fff;
+    border-color: #fff;
+}
+
+/* ヘッダー */
+.app-header {
+    background: linear-gradient(135deg, #00BFA5 0%, #00695C 100%);
+    color: white;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 20px rgba(0,191,165,0.15);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.app-header h1 {
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.nav-link {
+    color: white;
+    text-decoration: none;
+    padding: 12px 20px;
+    margin-left: 10px;
+    border-radius: 25px;
+    font-size: 18px;
+    background-color: rgba(255,255,255,0.15);
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.nav-link:hover {
+    background-color: rgba(255,255,255,0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+}
+
+/* アクセシビリティコントロール */
+.accessibility-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: rgba(255,255,255,0.1);
+    padding: 10px;
+    border-radius: 8px;
+    margin-left: 20px;
+}
+
+.accessibility-controls label {
+    color: white;
+    font-size: 16px;
+    margin-right: 5px;
+}
+
+.font-size-controls {
+    display: flex;
+    gap: 5px;
+}
+
+.font-size-btn, .contrast-btn {
+    background-color: rgba(255,255,255,0.2);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    min-width: 40px;
+}
+
+.font-size-btn:hover, .contrast-btn:hover {
+    background-color: rgba(255,255,255,0.3);
+    transform: translateY(-1px);
+}
+
+.font-size-btn.active, .contrast-btn.active {
+    background-color: rgba(255,255,255,0.4);
+    font-weight: bold;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.contrast-btn {
+    padding: 8px 15px;
+}
+
+/* キーボードナビゲーション強化 */
+.faq-item:focus, button:focus, textarea:focus {
+    outline: 3px solid #4CAF50;
+    outline-offset: 2px;
+}
+
+body.high-contrast .faq-item:focus, 
+body.high-contrast button:focus, 
+body.high-contrast textarea:focus {
+    outline: 3px solid #fff;
+}
+
+/* メインコンテンツ */
+.main-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* チャットコンテナ */
+.chat-container {
+    display: flex;
+    height: calc(100vh - 140px);
+    min-height: 0;
+    gap: 0;
+    background: linear-gradient(135deg, #FFFFFF 0%, #FAFAFA 100%);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0,191,165,0.08);
+    overflow: hidden;
+    border: 1px solid rgba(0,191,165,0.08);
+}
+
+/* FAQ サイドバー */
+.faq-sidebar {
+    width: 350px;
+    background: linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 100%);
+    border-right: 1px solid rgba(0,191,165,0.12);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 0 15px rgba(0,191,165,0.05);
+}
+
+.faq-header {
+    padding: 25px 20px;
+    background: linear-gradient(135deg, #00BFA5 0%, #00695C 100%);
+    color: white;
+    border-bottom: none;
+    box-shadow: 0 2px 10px rgba(0,191,165,0.1);
+}
+
+.faq-header h2 {
+    font-size: 22px;
+    color: white;
+    font-weight: 600;
+    margin-bottom: 15px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* FAQ検索とフィルター機能 */
+.faq-search-container {
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.faq-search-input {
+    width: 100%;
+    padding: 12px 35px 12px 16px;
+    border: none;
+    border-radius: 25px;
+    font-size: 14px;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    transition: all 0.3s;
+    backdrop-filter: blur(10px);
+}
+
+.faq-search-input:focus {
+    outline: none;
+    background: rgba(255,255,255,0.3);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.2);
+}
+
+.faq-search-input::placeholder {
+    color: rgba(255,255,255,0.8);
+}
+
+.faq-search-clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    font-size: 14px;
+    color: white;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    backdrop-filter: blur(10px);
+}
+
+.faq-search-clear:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.faq-filter-container {
+    margin-bottom: 10px;
+}
+
+.faq-category-filter {
+    width: 100%;
+    padding: 8px 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 14px;
+    background-color: white;
+    cursor: pointer;
+    transition: border-color 0.3s;
+}
+
+.faq-category-filter:focus {
+    outline: none;
+    border-color: #4CAF50;
+}
+
+.faq-search-results {
+    padding: 5px 0;
+    color: #666;
+}
+
+/* 人気FAQセクション */
+.popular-faq-section {
+    padding: 15px 20px;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #FFF8E1 0%, #FFECB3 100%);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-radius: 8px;
+    margin: 10px 10px 15px 10px;
+}
+
+.popular-faq-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #F57F17;
+    margin: 0 0 10px 0;
+    text-align: center;
+}
+
+.popular-faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.popular-faq-item {
+    padding: 10px 12px;
+    background: #FFFFFF;
+    border: 1px solid rgba(255, 193, 7, 0.2);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    color: #333;
+}
+
+.popular-faq-item:hover {
+    background-color: #FFF3E0;
+    border-color: #FFC107;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(255, 193, 7, 0.2);
+}
+
+.popular-faq-item-title {
+    font-weight: 600;
+    color: #E65100;
+    font-size: 14px;
+    line-height: 1.3;
+}
+
+.popular-faq-item-stats {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+}
+
+/* ハイコントラストモード対応 */
+body.high-contrast .popular-faq-section {
+    background-color: #222;
+    border-color: #fff;
+}
+
+body.high-contrast .popular-faq-title {
+    color: #fff;
+}
+
+body.high-contrast .popular-faq-item {
+    background-color: #333;
+    border-color: #fff;
+    color: #fff;
+}
+
+body.high-contrast .popular-faq-item:hover {
+    background-color: #444;
+}
+
+body.high-contrast .popular-faq-item-title {
+    color: #fff;
+}
+
+/* よくある質問クイックアクセス */
+.quick-faq-access {
+    padding: 15px 20px;
+    margin: 15px 0;
+    background: linear-gradient(135deg, #E8F5E8 0%, #F1F8E9 100%);
+    border: 1px solid rgba(76, 175, 80, 0.2);
+    border-radius: 12px;
+}
+
+.quick-faq-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2E7D32;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.quick-faq-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
+
+.quick-faq-btn {
+    padding: 8px 12px;
+    background: #FFFFFF;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    border-radius: 20px;
+    color: #2E7D32;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 44px; /* アクセシビリティ: タッチターゲットサイズ */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.quick-faq-btn:hover {
+    background-color: #E8F5E8;
+    border-color: #4CAF50;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(76, 175, 80, 0.2);
+}
+
+.quick-faq-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(76, 175, 80, 0.2);
+}
+
+/* ハイコントラストモード対応 */
+body.high-contrast .quick-faq-access {
+    background-color: #222;
+    border-color: #fff;
+}
+
+body.high-contrast .quick-faq-title {
+    color: #fff;
+}
+
+body.high-contrast .quick-faq-btn {
+    background-color: #333;
+    border-color: #fff;
+    color: #fff;
+}
+
+body.high-contrast .quick-faq-btn:hover {
+    background-color: #444;
+}
+
+/* モバイル対応 */
+@media (max-width: 768px) {
+    .quick-faq-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .quick-faq-btn {
+        min-width: 200px;
+        justify-content: flex-start;
+        padding-left: 16px;
+    }
+}
+
+/* FAQ項目の改善 */
+.faq-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    gap: 8px;
+}
+
+.faq-category-badge {
+    background-color: #e8f5e8;
+    color: #1b5e20;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.faq-stats {
+    margin-top: 8px;
+    color: #888;
+    font-size: 12px;
+}
+
+/* 検索結果のハイライト */
+.faq-item.search-highlight {
+    background-color: #f0f8f0 !important;
+    border-color: #4CAF50 !important;
+    transform: none !important;
+}
+
+.faq-item.search-highlight .faq-title {
+    color: #1b5e20 !important;
+    font-weight: bold;
+}
+
+/* 検索結果がない場合 */
+.no-search-results {
+    text-align: center;
+    padding: 30px 20px;
+    color: #666;
+}
+
+/* ハイコントラストモード対応 */
+body.high-contrast .faq-search-input,
+body.high-contrast .faq-category-filter {
+    background-color: #222;
+    color: #fff;
+    border-color: #fff;
+}
+
+body.high-contrast .faq-search-clear {
+    color: #fff;
+}
+
+body.high-contrast .faq-search-clear:hover {
+    background-color: #444;
+}
+
+body.high-contrast .faq-category-badge {
+    background-color: #333;
+    color: #fff;
+    border: 1px solid #fff;
+}
+
+.faq-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.faq-item {
+    padding: 15px;
+    margin-bottom: 8px;
+    margin-left: 10px;
+    margin-right: 10px;
+    background-color: white;
+    border: 1px solid #E9ECEF;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 8px rgba(0,191,165,0.05);
+}
+
+.faq-item:hover {
+    background-color: #F0F8F7;
+    border-color: #00BFA5;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,191,165,0.15);
+}
+
+.faq-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #00695C;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.faq-preview {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.4;
+}
+
+/* チャットエリア */
+.chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* ユーザー識別パネル */
+.user-identity-panel {
+    background-color: #e3f2fd;
+    border: 1px solid #2196F3;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 15px;
+    animation: slideDown 0.5s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.identity-header h4 {
+    color: #1976D2;
+    margin: 0 0 8px 0;
+    font-size: 18px;
+}
+
+.identity-header p {
+    color: #666;
+    margin: 0 0 15px 0;
+    font-size: 14px;
+}
+
+.identity-form .input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.identity-form input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.identity-form input:focus {
+    outline: none;
+    border-color: #2196F3;
+    box-shadow: 0 0 5px rgba(33, 150, 243, 0.3);
+}
+
+.identity-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.identity-actions .btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.identity-actions .btn-primary {
+    background-color: #2196F3;
+    color: white;
+}
+
+.identity-actions .btn-primary:hover {
+    background-color: #1976D2;
+}
+
+.identity-actions .btn-link {
+    background: none;
+    color: #666;
+    text-decoration: underline;
+}
+
+.identity-actions .btn-link:hover {
+    color: #333;
+}
+
+/* ユーザー表示エリア */
+.user-display-area {
+    background-color: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 10px 15px;
+    margin-bottom: 15px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+}
+
+.user-icon {
+    font-size: 18px;
+    background: linear-gradient(135deg, #00BFA5, #00897B);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0, 191, 165, 0.2);
+}
+
+#userDisplayName {
+    font-weight: 500;
+    color: #333;
+}
+
+.user-status {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.user-status.anonymous {
+    background-color: #e0e0e0;
+    color: #666;
+}
+
+.user-status.identified {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.btn-clear-identity {
+    background: linear-gradient(135deg, #ffcdd2, #f8bbd9);
+    border: 1px solid #e91e63;
+    color: #c2185b;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    margin-left: auto;
+    transition: all 0.3s;
+    box-shadow: 0 1px 4px rgba(233, 30, 99, 0.2);
+}
+
+.btn-clear-identity:hover {
+    background: linear-gradient(135deg, #f8bbd9, #f48fb1);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(233, 30, 99, 0.3);
+}
+
+/* ハイコントラストモード対応 */
+body.high-contrast .user-identity-panel {
+    background-color: #333;
+    border-color: #fff;
+    color: #fff;
+}
+
+body.high-contrast .identity-header h4 {
+    color: #fff;
+}
+
+body.high-contrast .identity-header p {
+    color: #ccc;
+}
+
+body.high-contrast .identity-form input {
+    background-color: #444;
+    border-color: #fff;
+    color: #fff;
+}
+
+body.high-contrast .user-display-area {
+    background-color: #222;
+    border-color: #fff;
+    color: #fff;
+}
+
+body.high-contrast .user-status.anonymous {
+    background-color: #444;
+    color: #ccc;
+}
+
+body.high-contrast .user-status.identified {
+    background-color: #2e7d32;
+    color: #fff;
+}
+
+/* メッセージ表示の改善 */
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+    font-size: 12px;
+    color: #666;
+}
+
+.message-sender {
+    font-weight: 500;
+}
+
+.message-time {
+    color: #999;
+}
+
+.message-responder {
+    margin-top: 8px;
+    font-size: 11px;
+    color: #888;
+    font-style: italic;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background: linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 100%);
+    scrollbar-width: thin;
+    scrollbar-color: #B0BEC5 #F5F5F5;
+    min-height: 0;
+}
+
+/* スクロールバーのスタイル（WebKit系ブラウザ） */
+.chat-messages::-webkit-scrollbar {
+    width: 8px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* メッセージバブル（LINE風） */
+.message-group {
+    margin-bottom: 20px;
+}
+
+.bot-message, .user-message, .staff-message {
+    display: flex;
+    margin-bottom: 15px;
+}
+
+.user-message {
+    justify-content: flex-end;
+}
+
+.bot-message, .staff-message {
+    justify-content: flex-start;
+}
+
+.message-bubble {
+    max-width: 70%;
+    padding: 15px 20px;
+    border-radius: 20px;
+    position: relative;
+    font-size: 18px;
+    line-height: 1.5;
+}
+
+.user-message .message-bubble {
+    background: linear-gradient(135deg, #00BFA5, #00897B);
+    color: white;
+    border-bottom-right-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,191,165,0.2);
+}
+
+.bot-message .message-bubble {
+    background: linear-gradient(135deg, #F5F5F5, #EEEEEE);
+    color: #37474F;
+    border-bottom-left-radius: 8px;
+    border: 1px solid #E0E0E0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.staff-message .message-bubble {
+    background: linear-gradient(135deg, #00695C, #004D40);
+    color: white;
+    border-bottom-left-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,105,92,0.2);
+}
+
+.message-content {
+    word-wrap: break-word;
+}
+
+.message-time {
+    font-size: 14px;
+    opacity: 0.7;
+    margin-top: 5px;
+}
+
+/* チャット入力エリア */
+.chat-input-container {
+    padding: 20px;
+    background: linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 100%);
+    border-top: 1px solid rgba(0,191,165,0.12);
+    box-shadow: 0 -4px 20px rgba(0,191,165,0.05);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+#messageInput {
+    flex: 1;
+    padding: 18px 20px;
+    border: 2px solid #E9ECEF;
+    border-radius: 25px;
+    font-size: 18px;
+    resize: none;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,191,165,0.05);
+}
+
+#messageInput:focus {
+    outline: none;
+    border-color: #00BFA5;
+    box-shadow: 0 4px 20px rgba(0,191,165,0.15);
+    transform: translateY(-2px);
+}
+
+.input-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.file-button, .send-button {
+    padding: 15px 20px;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: bold;
+}
+
+.file-button {
+    background: linear-gradient(135deg, #E0F7FA, #B2EBF2);
+    color: #00695C;
+    border: 1px solid #00BFA5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 50px;
+    height: 50px;
+    box-shadow: 0 2px 8px rgba(0, 191, 165, 0.1);
+}
+
+.file-button:hover {
+    background: linear-gradient(135deg, #B2EBF2, #80DEEA);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 191, 165, 0.2);
+}
+
+.send-button {
+    background: linear-gradient(135deg, #00BFA5, #00897B);
+    color: white;
+    min-width: 80px;
+    box-shadow: 0 4px 15px rgba(0,191,165,0.3);
+}
+
+.send-button:hover {
+    background: linear-gradient(135deg, #00ACC1, #00695C);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,191,165,0.4);
+}
+
+.send-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.character-count {
+    text-align: right;
+    font-size: 14px;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* モーダル */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 5% auto;
+    padding: 30px;
+    border-radius: 12px;
+    width: 80%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.modal-close {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    font-size: 28px;
+    cursor: pointer;
+    color: #999;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+
+.faq-modal-body {
+    margin: 20px 0;
+}
+
+.faq-question, .faq-answer {
+    margin-bottom: 20px;
+}
+
+.faq-question strong, .faq-answer strong {
+    color: #2e7d32;
+    font-size: 20px;
+}
+
+.modal-actions {
+    text-align: center;
+    margin-top: 30px;
+}
+
+.use-faq-button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 8px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.use-faq-button:hover {
+    background-color: #45a049;
+}
+
+/* Viewport height fixes for mobile */
+@supports (-webkit-touch-callout: none) {
+    .chat-container {
+        height: calc(-webkit-fill-available - 140px);
+    }
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+    body {
+        font-size: 16px;
+        height: 100vh;
+        height: 100dvh; /* dynamic viewport height for mobile */
+    }
+    
+    .chat-container {
+        flex-direction: column;
+        height: calc(100vh - 120px);
+        height: calc(100dvh - 120px);
+        min-height: 0;
+    }
+    
+    @supports (-webkit-touch-callout: none) {
+        .chat-container {
+            height: calc(-webkit-fill-available - 120px);
+        }
+    }
+    
+    .faq-sidebar {
+        width: 100%;
+        height: 200px;
+        flex-shrink: 0;
+        order: 2;
+    }
+    
+    .chat-area {
+        flex: 1;
+        min-height: 0;
+        order: 1;
+    }
+    
+    .message-bubble {
+        max-width: 85%;
+        font-size: 16px;
+    }
+    
+    .chat-input-container {
+        padding: 15px;
+        background: white;
+    }
+}
+
+/* 高コントラストモード対応 */
+@media (prefers-contrast: high) {
+    .message-bubble {
+        border: 2px solid #333;
+    }
+    
+    .faq-item {
+        border: 2px solid #333;
+    }
+}
+
+/* チャットUX向上 - 入力状態とメッセージステータス */
+.input-group.focused {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
+}
+
+.message-status {
+    display: inline-block;
+    margin-left: 8px;
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.message-status.sending {
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 0.4; }
+}
+
+/* タイピングインジケーター */
+.typing-indicator {
+    opacity: 0;
+    animation: fadeIn 0.3s ease-in-out forwards;
+}
+
+.typing-bubble {
+    background-color: #f0f0f0 !important;
+    border: 1px solid #e0e0e0;
+    padding: 10px 15px !important;
+}
+
+.typing-dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 20px;
+}
+
+.typing-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #999;
+    animation: typingDot 1.4s infinite ease-in-out;
+}
+
+.typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+.typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+.typing-dots span:nth-child(3) { animation-delay: 0s; }
+
+@keyframes typingDot {
+    0%, 80%, 100% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 通知システム */
+.notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 300px;
+}
+
+.notification {
+    padding: 12px 16px;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: slideInRight 0.3s ease-out forwards, slideOutRight 0.3s ease-in 2.7s forwards;
+    opacity: 0;
+    transform: translateX(100%);
+}
+
+.notification.info {
+    background-color: #2196F3;
+}
+
+.notification.success {
+    background-color: #4CAF50;
+}
+
+.notification.error {
+    background-color: #f44336;
+}
+
+.notification.warning {
+    background-color: #ff9800;
+}
+
+@keyframes slideInRight {
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideOutRight {
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+/* 送信ボタンの改善 */
+.send-button {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.send-button:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.send-button:disabled {
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* 文字数カウンターの改善 */
+.character-count {
+    transition: all 0.3s ease;
+}
+
+.character-count:has(#charCount[style*="orange"]) {
+    background-color: rgba(255, 152, 0, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.character-count:has(#charCount[style*="red"]) {
+    background-color: rgba(244, 67, 54, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* ハイコントラストモードでの通知とタイピング表示 */
+body.high-contrast .typing-bubble {
+    background-color: #333 !important;
+    border-color: #fff;
+}
+
+body.high-contrast .typing-dots span {
+    background-color: #fff;
+}
+
+body.high-contrast .notification {
+    border: 2px solid #fff;
+}
+
+/* モバイル対応 - 通知位置調整 */
+@media (max-width: 768px) {
+    .notification-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+    
+    .notification {
+        text-align: center;
+    }
+    
+    .typing-bubble {
+        margin: 0 10px;
+    }
+}

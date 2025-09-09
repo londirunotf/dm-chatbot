@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}DM作業チャットサポート{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.min.css') }}?v=20250821_optimized">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <header class="app-header">
+        <h1>DM作業チャットサポート</h1>
+        <div style="display: flex; align-items: center;">
+            <nav>
+                <a href="{{ url_for('main.index') }}" class="nav-link">チャット</a>
+                <a href="{{ url_for('admin.dashboard') }}" class="nav-link admin-link">管理画面</a>
+            </nav>
+            
+            <!-- アクセシビリティコントロール -->
+            <div class="accessibility-controls">
+                <label>文字サイズ:</label>
+                <div class="font-size-controls">
+                    <button class="font-size-btn" data-size="small" title="小さい文字">小</button>
+                    <button class="font-size-btn active" data-size="medium" title="標準文字">中</button>
+                    <button class="font-size-btn" data-size="large" title="大きい文字">大</button>
+                    <button class="font-size-btn" data-size="xlarge" title="特大文字">特大</button>
+                </div>
+                <button class="contrast-btn" id="contrastToggle" title="ハイコントラスト切り替え">
+                    🌓
+                </button>
+            </div>
+        </div>
+    </header>
+    
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <script src="{{ url_for('static', filename='js/accessibility.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/faq-search.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

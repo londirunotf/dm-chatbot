@@ -1,0 +1,571 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="user-management">
+    <div class="page-header">
+        <h2>ユーザー管理</h2>
+        <div class="header-actions">
+            <div class="user-stats">
+                <div class="stat-item">
+                    <span class="count">{{ users.total if users else 0 }}</span>
+                    <span class="label">総ユーザー数</span>
+                </div>
+            </div>
+            <a href="{{ url_for('admin.user_add') }}" class="btn btn-primary">
+                <span class="btn-icon">+</span>
+                ユーザー追加
+            </a>
+        </div>
+    </div>
+    
+    {% if users and users.items %}
+    <div class="user-table-container">
+        <!-- デスクトップ用テーブル表示 -->
+        <table class="user-table mobile-hidden">
+            <thead>
+                <tr>
+                    <th>ユーザー情報</th>
+                    <th>タイプ</th>
+                    <th>質問回数</th>
+                    <th>最終活動</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users.items %}
+                <tr>
+                    <td>
+                        <div class="user-info">
+                            <div class="user-name">
+                                {% if user.display_name %}
+                                    {{ user.display_name }}
+                                {% else %}
+                                    {{ user.identifier }}
+                                {% endif %}
+                            </div>
+                            {% if user.department %}
+                            <div class="user-department">{{ user.department }}</div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="user-type-badge {{ user.user_type }}">
+                            {% if user.user_type == 'staff' %}
+                                <span class="type-icon staff-icon"></span> 職員
+                            {% elif user.is_anonymous %}
+                                <span class="type-icon anon-icon"></span> 匿名
+                            {% else %}
+                                <span class="type-icon user-icon"></span> 登録済み
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td class="text-center">{{ user.question_count or 0 }}</td>
+                    <td>
+                        {% if user.last_activity %}
+                            {{ user.last_activity.strftime('%Y/%m/%d %H:%M') }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{{ url_for('admin.user_detail', user_id=user.id) }}" 
+                               class="btn-icon detail-btn" title="詳細を見る">
+                                <img src="{{ url_for('static', filename='icon01.png') }}" alt="詳細" class="action-icon-img">
+                            </a>
+                            <a href="{{ url_for('admin.user_edit', user_id=user.id) }}" 
+                               class="btn-icon edit-btn" title="編集">
+                                <img src="{{ url_for('static', filename='icon02.png') }}" alt="編集" class="action-icon-img">
+                            </a>
+                            <a href="{{ url_for('admin.user_chat', user_id=user.id) }}" 
+                               class="btn-icon chat-btn" title="チャットルーム">
+                                <img src="{{ url_for('static', filename='icon03.png') }}" alt="チャット" class="action-icon-img">
+                            </a>
+                            {% if user.user_type != 'admin' %}
+                            <button onclick="confirmUserDelete({{ user.id }}, '{{ user.display_name or user.identifier }}')" 
+                                    class="btn-icon delete-btn" title="削除">
+                                <span class="delete-icon">×</span>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- モバイル用カード表示 -->
+        <div class="mobile-card-view mobile-only">
+            {% for user in users.items %}
+            <div class="mobile-card">
+                <div class="mobile-card-header">
+                    <div class="mobile-card-title">
+                        {% if user.display_name %}
+                            {{ user.display_name }}
+                        {% else %}
+                            {{ user.identifier }}
+                        {% endif %}
+                    </div>
+                    <span class="user-type-badge {{ user.user_type }}">
+                        {% if user.user_type == 'staff' %}
+                            <span class="type-icon staff-icon"></span> 職員
+                        {% elif user.is_anonymous %}
+                            <span class="type-icon anon-icon"></span> 匿名
+                        {% else %}
+                            <span class="type-icon user-icon"></span> 登録済み
+                        {% endif %}
+                    </span>
+                </div>
+                
+                <div class="mobile-card-meta">
+                    {% if user.department %}
+                    <div class="mobile-card-field">
+                        <div class="mobile-card-label">部署</div>
+                        <div class="mobile-card-value">{{ user.department }}</div>
+                    </div>
+                    {% endif %}
+                    <div class="mobile-card-field">
+                        <div class="mobile-card-label">質問回数</div>
+                        <div class="mobile-card-value">{{ user.question_count or 0 }}回</div>
+                    </div>
+                    <div class="mobile-card-field">
+                        <div class="mobile-card-label">最終活動</div>
+                        <div class="mobile-card-value">
+                            {% if user.last_activity %}
+                                {{ user.last_activity.strftime('%m/%d %H:%M') }}
+                            {% else %}
+                                未活動
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="mobile-card-field">
+                        <div class="mobile-card-label">ユーザーID</div>
+                        <div class="mobile-card-value">{{ user.identifier }}</div>
+                    </div>
+                </div>
+                
+                <div class="mobile-card-actions">
+                    <a href="{{ url_for('admin.user_detail', user_id=user.id) }}" 
+                       class="btn btn-sm btn-secondary">
+                        詳細
+                    </a>
+                    <a href="{{ url_for('admin.user_edit', user_id=user.id) }}" 
+                       class="btn btn-sm btn-secondary">
+                        編集
+                    </a>
+                    <a href="{{ url_for('admin.user_chat', user_id=user.id) }}" 
+                       class="btn btn-sm btn-primary">
+                        チャット
+                    </a>
+                    {% if user.user_type != 'admin' %}
+                    <button onclick="confirmUserDelete({{ user.id }}, '{{ user.display_name or user.identifier }}')" 
+                            class="btn btn-sm" style="background: #ff6b6b; color: white;">
+                        削除
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- ページネーション -->
+    {% if users.pages > 1 %}
+    <div class="pagination">
+        {% if users.has_prev %}
+            <a href="{{ url_for('admin.user_list', page=users.prev_num) }}" class="pagination-link">前へ</a>
+        {% endif %}
+        
+        {% for page_num in users.iter_pages() %}
+            {% if page_num %}
+                {% if page_num != users.page %}
+                    <a href="{{ url_for('admin.user_list', page=page_num) }}" class="pagination-link">{{ page_num }}</a>
+                {% else %}
+                    <span class="pagination-current">{{ page_num }}</span>
+                {% endif %}
+            {% else %}
+                <span class="pagination-ellipsis">…</span>
+            {% endif %}
+        {% endfor %}
+        
+        {% if users.has_next %}
+            <a href="{{ url_for('admin.user_list', page=users.next_num) }}" class="pagination-link">次へ</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div class="no-data">
+        <div class="no-data-message">
+            <h3>ユーザーが見つかりません</h3>
+            <p>まだユーザーの登録がありません。</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.page-header h2 {
+    color: #00695C;
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #00BFA5, #00897B);
+    color: white;
+    box-shadow: 0 4px 16px rgba(0, 191, 165, 0.3);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #00897B, #00695C);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 191, 165, 0.4);
+}
+
+.btn-icon {
+    font-size: 16px;
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+    
+    .header-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+.user-table-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.user-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.user-table th {
+    background-color: #00BFA5;
+    color: white;
+    padding: 15px;
+    text-align: left;
+    font-size: 16px;
+}
+
+.user-table td {
+    padding: 15px;
+    border-bottom: 1px solid #e0e0e0;
+    vertical-align: top;
+}
+
+.user-table tr:hover {
+    background-color: #f5f5f5;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.user-name {
+    font-weight: 500;
+    color: #333;
+}
+
+.user-department {
+    font-size: 12px;
+    color: #666;
+}
+
+.user-type-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.user-type-badge.staff {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+.user-type-badge.user {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.pagination-link, .pagination-current, .pagination-ellipsis {
+    padding: 8px 12px;
+    border-radius: 4px;
+    text-decoration: none;
+}
+
+.pagination-link {
+    background-color: #f0f0f0;
+    color: #333;
+    transition: background-color 0.3s;
+}
+
+.pagination-link:hover {
+    background-color: #e0e0e0;
+}
+
+.pagination-current {
+    background-color: #00BFA5;
+    color: white;
+}
+
+.pagination-ellipsis {
+    color: #666;
+}
+
+.btn-icon {
+    padding: 6px 10px !important;
+    margin-left: 5px;
+    border-radius: 4px;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+}
+
+.detail-btn {
+    background: linear-gradient(135deg, #00BFA5, #00897B) !important;
+    color: white !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 6px rgba(0, 191, 165, 0.3) !important;
+}
+
+.detail-btn:hover {
+    background: linear-gradient(135deg, #00897B, #00695C) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 191, 165, 0.4) !important;
+}
+
+.edit-btn {
+    background: linear-gradient(135deg, #00BFA5, #00897B) !important;
+    color: white !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 6px rgba(0, 191, 165, 0.3) !important;
+}
+
+.edit-btn:hover {
+    background: linear-gradient(135deg, #00897B, #00695C) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 191, 165, 0.4) !important;
+}
+
+.chat-btn {
+    background: linear-gradient(135deg, #00BFA5, #00897B) !important;
+    color: white !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 6px rgba(0, 191, 165, 0.3) !important;
+}
+
+.chat-btn:hover {
+    background: linear-gradient(135deg, #00897B, #00695C) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 191, 165, 0.4) !important;
+}
+
+/* アイコンスタイル統一 */
+.type-icon, .action-icon {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    position: relative;
+    margin-right: 6px;
+}
+
+/* ユーザータイプアイコン */
+.staff-icon::before {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: linear-gradient(135deg, #1976d2, #1565c0);
+    border-radius: 50%;
+    top: 0;
+    left: 3px;
+    box-shadow: 0 2px 4px rgba(25, 118, 210, 0.3);
+}
+
+.staff-icon::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 6px;
+    background: linear-gradient(135deg, #1976d2, #1565c0);
+    border-radius: 0 0 6px 6px;
+    bottom: 0;
+    left: 1px;
+}
+
+.anon-icon::before {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: linear-gradient(135deg, #757575, #616161);
+    border-radius: 50%;
+    top: 0;
+    left: 3px;
+    box-shadow: 0 2px 4px rgba(117, 117, 117, 0.3);
+}
+
+.anon-icon::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 6px;
+    background: linear-gradient(135deg, #757575, #616161);
+    border-radius: 0 0 6px 6px;
+    bottom: 0;
+    left: 1px;
+}
+
+.user-icon::before {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: linear-gradient(135deg, #2e7d32, #1b5e20);
+    border-radius: 50%;
+    top: 0;
+    left: 3px;
+    box-shadow: 0 2px 4px rgba(46, 125, 50, 0.3);
+}
+
+.user-icon::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 6px;
+    background: linear-gradient(135deg, #2e7d32, #1b5e20);
+    border-radius: 0 0 6px 6px;
+    bottom: 0;
+    left: 1px;
+}
+
+/* 画像アイコンスタイル */
+.action-icon-img {
+    width: 24px;
+    height: 24px;
+    display: block;
+    transition: transform 0.3s ease;
+}
+
+.btn-icon:hover .action-icon-img {
+    transform: scale(1.1);
+}
+
+/* 削除ボタンスタイル */
+.delete-btn {
+    background: linear-gradient(135deg, #f44336, #d32f2f) !important;
+    color: white !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 6px rgba(244, 67, 54, 0.3) !important;
+    border: none;
+    cursor: pointer;
+}
+
+.delete-btn:hover {
+    background: linear-gradient(135deg, #d32f2f, #c62828) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4) !important;
+}
+
+.delete-icon {
+    font-size: 18px;
+    font-weight: bold;
+    display: inline-block;
+    line-height: 1;
+}
+</style>
+
+<script>
+function confirmUserDelete(userId, userName) {
+    // 削除確認ダイアログ
+    const message = `ユーザー「${userName}」を削除しますか？\n\n注意: この操作は取り消せません。関連する会話履歴やメッセージも削除される可能性があります。`;
+    
+    if (confirm(message)) {
+        // 削除実行
+        fetch(`/admin/users/${userId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 成功時：ページをリロード
+                alert(data.message || 'ユーザーを削除しました');
+                location.reload();
+            } else {
+                // エラー時：エラーメッセージを表示
+                alert(data.error || 'ユーザーの削除に失敗しました');
+            }
+        })
+        .catch(error => {
+            console.error('Delete error:', error);
+            alert('ユーザーの削除中にエラーが発生しました');
+        });
+    }
+}
+</script>
+{% endblock %}

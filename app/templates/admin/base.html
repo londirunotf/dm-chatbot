@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}管理画面 - DM作業チャットサポート{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.min.css') }}?v=20250821_optimized">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body>
+    <header class="app-header admin-header">
+        <div class="header-left">
+            <h1>管理画面 - DM作業チャットサポート</h1>
+        </div>
+        <div class="header-right">
+            <nav class="header-nav">
+                <a href="{{ url_for('admin.user_list') }}" class="nav-link">チャットに戻る</a>
+                <a href="{{ url_for('admin.dashboard') }}" class="nav-link">ダッシュボード</a>
+                <a href="{{ url_for('auth.logout') }}" class="nav-link logout-link" onclick="return confirm('ログアウトしますか？')">ログアウト</a>
+            </nav>
+        </div>
+    </header>
+    
+    <div class="admin-container">
+        <aside class="admin-sidebar">
+            <nav class="admin-nav">
+                <a href="{{ url_for('admin.dashboard') }}" class="admin-nav-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+                    📊 ダッシュボード
+                </a>
+                <a href="{{ url_for('admin.faq_list') }}" class="admin-nav-link {% if 'faq' in request.endpoint %}active{% endif %}">
+                    ❓ FAQ管理
+                </a>
+                <a href="{{ url_for('admin.escalation_list') }}" class="admin-nav-link {% if 'escalation' in request.endpoint %}active{% endif %}{% if pending_count > 0 %} has-badge{% endif %}">
+                    🚨 エスカレーション
+                    {% if pending_count > 0 %}
+                    <span class="badge">{{ pending_count }}</span>
+                    {% endif %}
+                </a>
+                <a href="{{ url_for('admin.user_list') }}" class="admin-nav-link {% if 'user' in request.endpoint %}active{% endif %}">
+                    <span class="custom-user-icon" style="
+                        display: inline-block !important;
+                        width: 20px !important;
+                        height: 20px !important;
+                        margin-right: 8px !important;
+                        vertical-align: middle !important;
+                        position: relative !important;
+                        background: linear-gradient(135deg, #00BFA5, #00897B) !important;
+                        border-radius: 50% !important;
+                        box-shadow: 0 2px 8px rgba(0, 191, 165, 0.2) !important;
+                    "></span> ユーザー管理
+                </a>
+                <style>
+                .custom-user-icon:before {
+                    content: '' !important;
+                    position: absolute !important;
+                    top: 3px !important;
+                    left: 50% !important;
+                    transform: translateX(-50%) !important;
+                    width: 6px !important;
+                    height: 6px !important;
+                    background: white !important;
+                    border-radius: 50% !important;
+                    z-index: 10 !important;
+                }
+                .custom-user-icon:after {
+                    content: '' !important;
+                    position: absolute !important;
+                    bottom: 2px !important;
+                    left: 50% !important;
+                    transform: translateX(-50%) !important;
+                    width: 12px !important;
+                    height: 8px !important;
+                    background: white !important;
+                    border-radius: 8px 8px 0 0 !important;
+                    z-index: 10 !important;
+                }
+                </style>
+                <a href="{{ url_for('admin.staff_list') }}" class="admin-nav-link {% if 'staff' in request.endpoint %}active{% endif %}">
+                    👨‍💼 職員管理
+                </a>
+                <a href="{{ url_for('admin.conversation_list') }}" class="admin-nav-link {% if 'conversation' in request.endpoint %}active{% endif %}">
+                    💬 会話履歴
+                </a>
+                <a href="{{ url_for('admin.analytics') }}" class="admin-nav-link {% if 'analytics' in request.endpoint %}active{% endif %}">
+                    📈 分析・統計
+                </a>
+            </nav>
+        </aside>
+        
+        <main class="admin-main">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="flash-message flash-{{ category }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

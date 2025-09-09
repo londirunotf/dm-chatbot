@@ -1,0 +1,593 @@
+{% extends "admin/base.html" %}
+
+{% block title %}ユーザー詳細 - 管理画面{% endblock %}
+
+{% block content %}
+<div class="user-detail-container">
+    <div class="page-header">
+        <h2>👤 ユーザー詳細</h2>
+        <div class="header-actions">
+            <a href="{{ url_for('admin.user_list') }}" class="btn btn-secondary">
+                ← ユーザー一覧に戻る
+            </a>
+            <a href="{{ url_for('admin.user_edit', user_id=user.id) }}" class="btn btn-primary">
+                <span class="btn-icon">✏️</span>
+                編集
+            </a>
+        </div>
+    </div>
+
+    <div class="user-profile-card">
+        <div class="user-header">
+            <div class="user-avatar-large">
+                {% if user.user_type == 'staff' %}
+                    👨‍💼
+                {% else %}
+                    👤
+                {% endif %}
+            </div>
+            <div class="user-header-info">
+                <h3>{{ user.display_name or user.identifier }}</h3>
+                <div class="user-meta">
+                    <span class="user-id">ID: {{ user.identifier }}</span>
+                    {% if user.department %}
+                    <span class="department">{{ user.department }}</span>
+                    {% endif %}
+                    <span class="user-type-badge {{ user.user_type }}">
+                        {% if user.user_type == 'staff' %}👨‍💼 職員{% else %}👥 利用者{% endif %}
+                    </span>
+                </div>
+            </div>
+            <div class="user-actions">
+                <a href="{{ url_for('admin.user_chat', user_id=user.id) }}" class="btn btn-success">
+                    <img src="/static/icon03.png" alt="チャット" class="btn-icon-img">
+                    チャット
+                </a>
+            </div>
+        </div>
+
+        <div class="user-stats">
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-info">
+                    <div class="stat-value">{{ user.question_count or 0 }}</div>
+                    <div class="stat-label">質問回数</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📅</div>
+                <div class="stat-info">
+                    <div class="stat-value">
+                        {% if user.last_activity %}
+                            {{ user.last_activity.strftime('%m/%d') }}
+                        {% else %}
+                            未記録
+                        {% endif %}
+                    </div>
+                    <div class="stat-label">最終活動</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🔒</div>
+                <div class="stat-info">
+                    <div class="stat-value">
+                        {% if user.is_locked %}
+                            ロック
+                        {% else %}
+                            アクティブ
+                        {% endif %}
+                    </div>
+                    <div class="stat-label">アカウント状態</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="detail-sections">
+        <!-- アカウント情報 -->
+        <div class="detail-section">
+            <h4 class="section-title">📋 アカウント情報</h4>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">作成日時</div>
+                    <div class="info-value">{{ user.created_at.strftime('%Y年%m月%d日 %H:%M') }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">最終活動</div>
+                    <div class="info-value">
+                        {% if user.last_activity %}
+                            {{ user.last_activity.strftime('%Y年%m月%d日 %H:%M') }}
+                        {% else %}
+                            未記録
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">ログイン試行回数</div>
+                    <div class="info-value">{{ user.login_attempts or 0 }}回</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">匿名ユーザー</div>
+                    <div class="info-value">
+                        {% if user.is_anonymous %}
+                            <span class="status-badge warning">はい</span>
+                        {% else %}
+                            <span class="status-badge success">いいえ</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 会話履歴 -->
+        {% if conversations %}
+        <div class="detail-section">
+            <h4 class="section-title">💬 最近の会話履歴</h4>
+            <div class="conversations-list">
+                {% for conversation in conversations %}
+                <div class="conversation-item">
+                    <div class="conversation-info">
+                        <div class="conversation-title">
+                            会話 #{{ conversation.id }}
+                        </div>
+                        <div class="conversation-meta">
+                            <span class="conversation-date">{{ conversation.last_activity.strftime('%Y/%m/%d %H:%M') }}</span>
+                            {% if conversation.user_display_name %}
+                            <span class="conversation-user">{{ conversation.user_display_name }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="conversation-actions">
+                        <a href="{{ url_for('admin.conversation_detail', conversation_id=conversation.id) }}" 
+                           class="btn-mini">詳細</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            {% if conversations|length >= 5 %}
+            <div class="section-footer">
+                <a href="{{ url_for('admin.conversation_list') }}?user_id={{ user.id }}" class="btn btn-outline">
+                    すべての会話を見る
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- メッセージ統計 -->
+        {% if messages %}
+        <div class="detail-section">
+            <h4 class="section-title">📝 最近のメッセージ</h4>
+            <div class="messages-list">
+                {% for message in messages[:5] %}
+                <div class="message-item">
+                    <div class="message-type-badge {{ message.message_type }}">
+                        {% if message.message_type == 'user' %}
+                            👤 ユーザー
+                        {% elif message.message_type == 'staff' %}
+                            👨‍💼 職員
+                        {% elif message.message_type == 'bot' %}
+                            🤖 ボット
+                        {% endif %}
+                    </div>
+                    <div class="message-content">
+                        <div class="message-text">{{ message.content[:100] }}{% if message.content|length > 100 %}...{% endif %}</div>
+                        <div class="message-date">{{ message.timestamp.strftime('%Y/%m/%d %H:%M') }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.user-detail-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.page-header h2 {
+    color: #00695C;
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.user-profile-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    margin-bottom: 30px;
+    overflow: hidden;
+}
+
+.user-header {
+    background: linear-gradient(135deg, #00BFA5, #00897B);
+    color: white;
+    padding: 30px;
+    display: flex;
+    align-items: center;
+    gap: 25px;
+}
+
+.user-avatar-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    flex-shrink: 0;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+}
+
+.user-header-info {
+    flex: 1;
+}
+
+.user-header-info h3 {
+    margin: 0 0 10px 0;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.user-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+}
+
+.user-id, .department {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.user-type-badge {
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+}
+
+.user-actions {
+    flex-shrink: 0;
+}
+
+.user-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+    padding: 25px 30px;
+}
+
+.stat-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border-left: 4px solid #00BFA5;
+}
+
+.stat-icon {
+    font-size: 24px;
+    opacity: 0.7;
+}
+
+.stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #00695C;
+    margin-bottom: 2px;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #666;
+    font-weight: 500;
+}
+
+.detail-sections {
+    display: grid;
+    gap: 25px;
+}
+
+.detail-section {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.section-title {
+    background: #f8f9fa;
+    color: #00695C;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    padding: 20px 25px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    padding: 25px;
+}
+
+.info-item {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #00BFA5;
+}
+
+.info-label {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.info-value {
+    font-size: 14px;
+    color: #333;
+    font-weight: 600;
+}
+
+.conversations-list, .messages-list {
+    padding: 25px;
+}
+
+.conversation-item, .message-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.conversation-item:last-child, .message-item:last-child {
+    border-bottom: none;
+}
+
+.conversation-title, .message-text {
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.conversation-meta, .message-date {
+    font-size: 12px;
+    color: #666;
+    display: flex;
+    gap: 10px;
+}
+
+.message-type-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.message-type-badge.user {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.message-type-badge.staff {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.message-type-badge.bot {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.message-content {
+    flex: 1;
+}
+
+.section-footer {
+    padding: 20px 25px;
+    border-top: 1px solid #e0e0e0;
+    text-align: center;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.status-badge.success {
+    background: #e8f5e8;
+    color: #2e7d32;
+}
+
+.status-badge.warning {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #00BFA5, #00897B);
+    color: white;
+    box-shadow: 0 4px 16px rgba(0, 191, 165, 0.3);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #00897B, #00695C);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 191, 165, 0.4);
+}
+
+.btn-secondary {
+    background: #f5f5f5;
+    color: #666;
+    border: 2px solid #e0e0e0;
+}
+
+.btn-secondary:hover {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.btn-success {
+    background: #4CAF50;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #45a049;
+    transform: translateY(-1px);
+}
+
+.btn-outline {
+    background: transparent;
+    color: #00BFA5;
+    border: 2px solid #00BFA5;
+}
+
+.btn-outline:hover {
+    background: #00BFA5;
+    color: white;
+}
+
+.btn-mini {
+    padding: 6px 12px;
+    font-size: 12px;
+    background: #00BFA5;
+    color: white;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.btn-mini:hover {
+    background: #00897B;
+    transform: translateY(-1px);
+}
+
+.btn-icon {
+    font-size: 16px;
+}
+
+.btn-icon-img {
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .user-detail-container {
+        margin: 0 10px;
+    }
+    
+    .page-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+    
+    .header-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .user-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 20px;
+    }
+    
+    .user-meta {
+        justify-content: center;
+    }
+    
+    .user-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .conversation-item, .message-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
+
+/* アニメーション */
+.user-profile-card {
+    animation: slideInUp 0.5s ease-out;
+}
+
+.detail-section {
+    animation: slideInUp 0.5s ease-out 0.1s both;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,394 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="conversation-detail">
+    <div class="page-header">
+        <h2>会話詳細</h2>
+        <div class="header-actions">
+            <a href="{{ url_for('admin.conversation_list') }}" class="btn btn-secondary">← 一覧に戻る</a>
+        </div>
+    </div>
+    
+    <!-- 会話情報パネル -->
+    <div class="conversation-info-panel">
+        <div class="conversation-header">
+            <h3>会話情報</h3>
+            <div class="conversation-meta">
+                <div class="meta-item">
+                    <strong>セッションID:</strong> {{ conversation.session_id }}
+                </div>
+                <div class="meta-item">
+                    <strong>開始時刻:</strong> 
+                    {% if conversation.started_at %}
+                        {{ conversation.started_at.strftime('%Y年%m月%d日 %H:%M:%S') }}
+                    {% else %}
+                        不明
+                    {% endif %}
+                </div>
+                <div class="meta-item">
+                    <strong>最終活動:</strong> 
+                    {% if conversation.last_activity %}
+                        {{ conversation.last_activity.strftime('%Y年%m月%d日 %H:%M:%S') }}
+                    {% else %}
+                        不明
+                    {% endif %}
+                </div>
+                <div class="meta-item">
+                    <strong>状態:</strong>
+                    {% if conversation.is_active %}
+                        <span class="status-badge active">🟢 アクティブ</span>
+                    {% else %}
+                        <span class="status-badge inactive">⚫ 終了</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- ユーザー情報 -->
+        <div class="user-info-section">
+            <h4>参加者情報</h4>
+            <div class="user-profile">
+                {% if conversation.user %}
+                    <div class="user-avatar">
+                        {% if conversation.user.user_type == 'staff' %}
+                            👨‍💼
+                        {% elif conversation.user.is_anonymous %}
+                            👤
+                        {% else %}
+                            👥
+                        {% endif %}
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name">
+                            {{ conversation.user.display_name or conversation.user.identifier }}
+                        </div>
+                        <div class="user-type">
+                            {% if conversation.user.user_type == 'staff' %}
+                                職員
+                            {% elif conversation.user.is_anonymous %}
+                                匿名ユーザー
+                            {% else %}
+                                登録ユーザー
+                            {% endif %}
+                        </div>
+                        {% if conversation.user.department %}
+                        <div class="user-department">所属: {{ conversation.user.department }}</div>
+                        {% endif %}
+                        <div class="user-stats">
+                            <small>質問回数: {{ conversation.user.question_count or 0 }}回</small>
+                        </div>
+                    </div>
+                {% elif conversation.user_display_name %}
+                    <div class="user-avatar">👤</div>
+                    <div class="user-details">
+                        <div class="user-name">{{ conversation.user_display_name }}</div>
+                        <div class="user-type">匿名ユーザー</div>
+                    </div>
+                {% else %}
+                    <div class="user-avatar">❓</div>
+                    <div class="user-details">
+                        <div class="user-name">不明なユーザー</div>
+                        <div class="user-type">匿名ユーザー</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- メッセージ履歴 -->
+    <div class="messages-section">
+        <h3>メッセージ履歴 ({{ messages|length }}件)</h3>
+        
+        {% if messages %}
+        <div class="message-timeline">
+            {% for message in messages %}
+            <div class="message-item {{ message.message_type }}">
+                <div class="message-meta">
+                    <div class="message-sender">
+                        {% if message.message_type == 'user' %}
+                            <div class="sender-info">
+                                <span class="sender-icon">
+                                    {% if message.sender_user and message.sender_user.user_type == 'staff' %}
+                                        👨‍💼
+                                    {% elif message.sender_user and not message.sender_user.is_anonymous %}
+                                        👥
+                                    {% else %}
+                                        👤
+                                    {% endif %}
+                                </span>
+                                <span class="sender-name">
+                                    {% set sender_info = message.get_sender_info() %}
+                                    {{ sender_info.display_name }}
+                                </span>
+                            </div>
+                        {% elif message.message_type == 'staff' %}
+                            <div class="sender-info">
+                                <span class="sender-icon">👨‍💼</span>
+                                <span class="sender-name">
+                                    {% set responder_info = message.get_responder_info() %}
+                                    {% if responder_info %}
+                                        {{ responder_info.name }}
+                                        {% if responder_info.department %}
+                                            ({{ responder_info.department }})
+                                        {% endif %}
+                                    {% else %}
+                                        職員
+                                    {% endif %}
+                                </span>
+                            </div>
+                        {% elif message.message_type == 'bot' %}
+                            <div class="sender-info">
+                                <span class="sender-icon">🤖</span>
+                                <span class="sender-name">
+                                    {% set responder_info = message.get_responder_info() %}
+                                    {% if responder_info %}
+                                        自動回答 ({{ responder_info.faq_title }})
+                                    {% else %}
+                                        システム自動回答
+                                    {% endif %}
+                                </span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="message-time">
+                        {{ message.timestamp.strftime('%m/%d %H:%M:%S') }}
+                    </div>
+                </div>
+                
+                <div class="message-content">
+                    {{ message.content }}
+                </div>
+                
+                {% if message.file_name %}
+                <div class="message-attachment">
+                    📎 {{ message.file_name }}
+                </div>
+                {% endif %}
+                
+                {% if message.is_escalated %}
+                <div class="escalation-notice">
+                    🚨 この質問はエスカレーションされました
+                </div>
+                {% endif %}
+                
+                {% if message.response_time_minutes %}
+                <div class="response-time">
+                    ⏱️ 回答時間: {{ "%.1f"|format(message.response_time_minutes) }}分
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-messages">
+            <p>この会話にはメッセージがありません。</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.conversation-info-panel {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 25px;
+    margin-bottom: 30px;
+}
+
+.conversation-header {
+    margin-bottom: 25px;
+}
+
+.conversation-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.meta-item {
+    font-size: 14px;
+}
+
+.meta-item strong {
+    color: #333;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.status-badge.active {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.status-badge.inactive {
+    background-color: #f5f5f5;
+    color: #666;
+}
+
+.user-info-section {
+    border-top: 1px solid #e0e0e0;
+    padding-top: 20px;
+}
+
+.user-info-section h4 {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.user-avatar {
+    font-size: 32px;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    border-radius: 50%;
+    border: 2px solid #e0e0e0;
+}
+
+.user-details {
+    flex: 1;
+}
+
+.user-name {
+    font-size: 18px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.user-type {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.user-department {
+    font-size: 13px;
+    color: #888;
+}
+
+.user-stats {
+    margin-top: 8px;
+}
+
+.messages-section {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 25px;
+}
+
+.message-timeline {
+    margin-top: 20px;
+}
+
+.message-item {
+    border-left: 4px solid #e0e0e0;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    background-color: #fafafa;
+    border-radius: 0 8px 8px 0;
+}
+
+.message-item.user {
+    border-left-color: #00BFA5;
+    background-color: #f3f9ff;
+}
+
+.message-item.staff {
+    border-left-color: #4CAF50;
+    background-color: #f1f8e9;
+}
+
+.message-item.bot {
+    border-left-color: #FF9800;
+    background-color: #fff8e1;
+}
+
+.message-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.sender-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sender-icon {
+    font-size: 18px;
+}
+
+.sender-name {
+    font-weight: 500;
+    color: #333;
+}
+
+.message-time {
+    font-size: 12px;
+    color: #666;
+}
+
+.message-content {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #333;
+    white-space: pre-wrap;
+    margin-bottom: 10px;
+}
+
+.message-attachment {
+    background-color: rgba(0,0,0,0.05);
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #666;
+    margin-top: 10px;
+}
+
+.escalation-notice {
+    background-color: #ffebee;
+    color: #c62828;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-top: 10px;
+    border-left: 3px solid #f44336;
+}
+
+.response-time {
+    font-size: 12px;
+    color: #888;
+    margin-top: 8px;
+}
+
+.no-messages {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+</style>
+{% endblock %}

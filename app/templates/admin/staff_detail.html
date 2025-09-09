@@ -1,0 +1,428 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="staff-detail-container">
+    <div class="page-header">
+        <h2>👨‍💼 {{ staff_member.name }} - 職員詳細</h2>
+        <div class="header-actions">
+            <a href="{{ url_for('admin.staff_edit', staff_id=staff_member.id) }}" class="btn btn-primary">
+                ✏️ 編集
+            </a>
+            <a href="{{ url_for('admin.staff_list') }}" class="btn btn-secondary">
+                ← 職員一覧
+            </a>
+        </div>
+    </div>
+
+    <div class="staff-overview">
+        <div class="staff-card">
+            <div class="staff-avatar">
+                <span class="avatar-icon">👨‍💼</span>
+                {% if not staff_member.is_active %}
+                    <div class="inactive-badge">無効</div>
+                {% endif %}
+            </div>
+            <div class="staff-info">
+                <h3>{{ staff_member.name }}</h3>
+                <div class="staff-meta">
+                    <div class="meta-item">
+                        <span class="label">職員ID:</span>
+                        <span class="value">{{ staff_member.staff_id }}</span>
+                    </div>
+                    {% if staff_member.department %}
+                    <div class="meta-item">
+                        <span class="label">所属:</span>
+                        <span class="value">{{ staff_member.department }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="meta-item">
+                        <span class="label">権限:</span>
+                        <span class="role-badge role-{{ staff_member.role }}">
+                            {% if staff_member.role == 'admin' %}
+                                管理者
+                            {% elif staff_member.role == 'supervisor' %}
+                                主任
+                            {% else %}
+                                職員
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="label">登録日:</span>
+                        <span class="value">{{ staff_member.created_at.strftime('%Y年%m月%d日') }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-info">
+                    <div class="stat-value">{{ staff_member.responses_count or 0 }}</div>
+                    <div class="stat-label">回答数</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">⏱️</div>
+                <div class="stat-info">
+                    <div class="stat-value">
+                        {% if staff_member.average_response_time %}
+                            {{ "%.1f"|format(staff_member.average_response_time) }}分
+                        {% else %}
+                            未測定
+                        {% endif %}
+                    </div>
+                    <div class="stat-label">平均回答時間</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">🕐</div>
+                <div class="stat-info">
+                    <div class="stat-value">
+                        {% if staff_member.last_response_at %}
+                            {{ staff_member.last_response_at.strftime('%m/%d %H:%M') }}
+                        {% else %}
+                            未対応
+                        {% endif %}
+                    </div>
+                    <div class="stat-label">最終対応</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if responses %}
+    <div class="response-history">
+        <h3>📝 最近の対応履歴</h3>
+        <div class="response-list">
+            {% for response in responses %}
+            <div class="response-item">
+                <div class="response-header">
+                    <span class="response-time">{{ response.timestamp.strftime('%Y/%m/%d %H:%M') }}</span>
+                    <span class="response-type">スタッフ回答</span>
+                </div>
+                <div class="response-content">
+                    {{ response.content }}
+                </div>
+                {% if response.conversation %}
+                <div class="response-context">
+                    <a href="{{ url_for('admin.conversation_detail', conversation_id=response.conversation.id) }}" 
+                       class="context-link">
+                        💬 会話の詳細を見る
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if responses|length >= 20 %}
+        <div class="load-more">
+            <button class="btn btn-secondary" onclick="loadMoreResponses()">
+                さらに読み込む
+            </button>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="no-responses">
+        <div class="empty-state">
+            <div class="empty-icon">📝</div>
+            <h3>対応履歴がありません</h3>
+            <p>この職員はまだエスカレーション対応を行っていません。</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.staff-detail-container {
+    padding: 20px;
+}
+
+.staff-overview {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.staff-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.staff-avatar {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.avatar-icon {
+    font-size: 64px;
+    background: linear-gradient(135deg, #00BFA5, #00897B);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.inactive-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #FF5722;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.staff-info h3 {
+    margin: 0 0 16px 0;
+    color: #333;
+    font-size: 24px;
+}
+
+.staff-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.meta-item {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    padding: 4px 0;
+}
+
+.meta-item .label {
+    color: #666;
+    font-weight: 500;
+}
+
+.meta-item .value {
+    color: #333;
+    font-weight: 600;
+}
+
+.role-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.role-admin {
+    background: linear-gradient(135deg, #FF6B6B, #EE5A52);
+    color: white;
+}
+
+.role-supervisor {
+    background: linear-gradient(135deg, #4ECDC4, #44A08D);
+    color: white;
+}
+
+.role-staff {
+    background: linear-gradient(135deg, #45B7D1, #96CEB4);
+    color: white;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.stat-icon {
+    font-size: 32px;
+    opacity: 0.8;
+}
+
+.stat-info {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #00BFA5;
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #666;
+    font-weight: 500;
+}
+
+.response-history {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.response-history h3 {
+    margin: 0 0 20px 0;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.response-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.response-item {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.2s ease;
+}
+
+.response-item:hover {
+    box-shadow: 0 2px 12px rgba(0,191,165,0.1);
+    border-color: #00BFA5;
+}
+
+.response-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.response-time {
+    font-size: 12px;
+    color: #666;
+}
+
+.response-type {
+    background: linear-gradient(135deg, #00BFA5, #00897B);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.response-content {
+    color: #333;
+    line-height: 1.5;
+    margin-bottom: 8px;
+}
+
+.response-context {
+    text-align: right;
+}
+
+.context-link {
+    color: #00BFA5;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.context-link:hover {
+    text-decoration: underline;
+}
+
+.no-responses {
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.empty-state {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.empty-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.6;
+}
+
+.empty-state h3 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.empty-state p {
+    color: #666;
+}
+
+.load-more {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 1024px) {
+    .staff-overview {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .staff-detail-container {
+        padding: 10px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .page-header {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .header-actions {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+function loadMoreResponses() {
+    // 追加の回答履歴を読み込む機能（将来実装）
+    alert('この機能は将来実装予定です');
+}
+</script>
+{% endblock %}

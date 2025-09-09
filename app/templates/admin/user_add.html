@@ -1,0 +1,502 @@
+{% extends "admin/base.html" %}
+
+{% block title %}ユーザー追加 - 管理画面{% endblock %}
+
+{% block content %}
+<div class="user-add-container">
+    <div class="page-header">
+        <h2>👥 ユーザー追加</h2>
+        <div class="header-actions">
+            <a href="{{ url_for('admin.user_list') }}" class="btn btn-secondary">
+                ← ユーザー一覧に戻る
+            </a>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <form method="POST" class="user-add-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <!-- ユーザー情報登録 -->
+            <div class="form-section">
+                <h3 class="section-title">ユーザー情報登録</h3>
+                
+                <div class="form-row">
+                    <div class="form-group required">
+                        <label for="identifier" class="form-label">
+                            <span class="label-text">ユーザーID</span>
+                            <span class="required-badge">必須</span>
+                        </label>
+                        <input type="text" 
+                               id="identifier" 
+                               name="identifier" 
+                               class="form-input" 
+                               placeholder="ログイン時に使用するユーザーID"
+                               maxlength="50"
+                               required>
+                        <div class="form-help">半角英数字とアンダースコア(_)、ハイフン(-)が使用できます</div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group required">
+                        <label for="display_name" class="form-label">
+                            <span class="label-text">表示名</span>
+                            <span class="required-badge">必須</span>
+                        </label>
+                        <input type="text" 
+                               id="display_name" 
+                               name="display_name" 
+                               class="form-input" 
+                               placeholder="画面に表示される名前"
+                               maxlength="100"
+                               required>
+                        <div class="form-help">チャット画面などで表示される名前です</div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group required">
+                        <label for="password" class="form-label">
+                            <span class="label-text">パスワード</span>
+                            <span class="required-badge">必須</span>
+                        </label>
+                        <input type="password" 
+                               id="password" 
+                               name="password" 
+                               class="form-input" 
+                               placeholder="ログイン用パスワード"
+                               minlength="6"
+                               maxlength="100"
+                               required>
+                        <div class="form-help">6文字以上で設定してください</div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="user_type" class="form-label">
+                            <span class="label-text">ユーザー種別</span>
+                        </label>
+                        <select id="user_type" name="user_type" class="form-select">
+                            <option value="user">👥 利用者</option>
+                            <option value="staff">👨‍💼 職員</option>
+                        </select>
+                        <div class="form-help">職員は管理機能へのアクセスが可能です</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- プロフィール情報 -->
+            <div class="form-section">
+                <h3 class="section-title">プロフィール情報</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="department" class="form-label">
+                            <span class="label-text">所属部署</span>
+                        </label>
+                        <input type="text" 
+                               id="department" 
+                               name="department" 
+                               class="form-input" 
+                               placeholder="所属部署名（任意）"
+                               maxlength="100">
+                        <div class="form-help">所属部署を入力してください（任意）</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 送信ボタン -->
+            <div class="form-actions">
+                <button type="button" 
+                        class="btn btn-secondary" 
+                        onclick="history.back()">
+                    キャンセル
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <span class="btn-icon">➕</span>
+                    ユーザーを追加
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.user-add-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.page-header h2 {
+    color: #00695C;
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.form-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.user-add-form {
+    padding: 30px;
+}
+
+.form-section {
+    margin-bottom: 40px;
+}
+
+.form-section:last-of-type {
+    margin-bottom: 30px;
+}
+
+.section-title {
+    color: #00695C;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 20px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #00BFA5;
+    display: inline-block;
+}
+
+.form-row {
+    margin-bottom: 25px;
+}
+
+.form-group {
+    position: relative;
+}
+
+.form-group.required .form-label::after {
+    content: '';
+}
+
+.form-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+}
+
+.label-text {
+    font-size: 14px;
+}
+
+.required-badge {
+    background: linear-gradient(135deg, #FF5722, #D32F2F);
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-input, .form-select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.form-input:focus, .form-select:focus {
+    outline: none;
+    border-color: #00BFA5;
+    box-shadow: 0 0 0 3px rgba(0, 191, 165, 0.1);
+}
+
+.form-input::placeholder {
+    color: #999;
+}
+
+.form-help {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+    line-height: 1.4;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 120px;
+    justify-content: center;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #00BFA5, #00897B);
+    color: white;
+    box-shadow: 0 4px 16px rgba(0, 191, 165, 0.3);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #00897B, #00695C);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 191, 165, 0.4);
+}
+
+.btn-secondary {
+    background: #f5f5f5;
+    color: #666;
+    border: 2px solid #e0e0e0;
+}
+
+.btn-secondary:hover {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.btn-icon {
+    font-size: 16px;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .user-add-container {
+        margin: 0 10px;
+    }
+    
+    .page-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+    
+    .header-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .user-add-form {
+        padding: 20px;
+    }
+    
+    .form-actions {
+        flex-direction: column-reverse;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}
+
+/* アニメーション */
+.form-container {
+    animation: slideInUp 0.5s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* フォーカス時のエフェクト */
+.form-input:focus, .form-select:focus {
+    animation: focusPulse 0.3s ease-out;
+}
+
+@keyframes focusPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // フォームバリデーション
+    const form = document.querySelector('.user-add-form');
+    const requiredFields = form.querySelectorAll('[required]');
+    
+    requiredFields.forEach(field => {
+        field.addEventListener('blur', function() {
+            validateField(this);
+        });
+    });
+    
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+        
+        requiredFields.forEach(field => {
+            if (!validateField(field)) {
+                isValid = false;
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            showNotification('必須項目を正しく入力してください', 'error');
+        }
+    });
+    
+    function validateField(field) {
+        const value = field.value.trim();
+        const fieldName = field.getAttribute('name');
+        
+        // 必須フィールドのチェック
+        if (field.hasAttribute('required') && !value) {
+            showFieldError(field, 'この項目は必須です');
+            return false;
+        }
+        
+        // パスワードの長さチェック
+        if (fieldName === 'password' && value && value.length < 6) {
+            showFieldError(field, 'パスワードは6文字以上で入力してください');
+            return false;
+        }
+        
+        // ユーザーIDの形式チェック
+        if (fieldName === 'identifier' && value) {
+            const validPattern = /^[a-zA-Z0-9_-]+$/;
+            if (!validPattern.test(value)) {
+                showFieldError(field, '半角英数字、アンダースコア、ハイフンのみ使用可能です');
+                return false;
+            }
+        }
+        
+        clearFieldError(field);
+        return true;
+    }
+    
+    function showFieldError(field, message) {
+        clearFieldError(field);
+        
+        field.style.borderColor = '#f44336';
+        field.style.boxShadow = '0 0 0 3px rgba(244, 67, 54, 0.1)';
+        
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'field-error';
+        errorDiv.textContent = message;
+        errorDiv.style.cssText = `
+            color: #f44336;
+            font-size: 12px;
+            margin-top: 5px;
+            animation: shake 0.3s ease-in-out;
+        `;
+        
+        field.parentNode.appendChild(errorDiv);
+    }
+    
+    function clearFieldError(field) {
+        field.style.borderColor = '';
+        field.style.boxShadow = '';
+        
+        const existingError = field.parentNode.querySelector('.field-error');
+        if (existingError) {
+            existingError.remove();
+        }
+    }
+    
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.textContent = message;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 10000;
+            animation: slideInRight 0.3s ease-out;
+            ${type === 'error' ? 'background: #f44336;' : 'background: #4caf50;'}
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.animation = 'slideOutRight 0.3s ease-in';
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 300);
+        }, 3000);
+    }
+});
+
+// アニメーション CSS を動的に追加
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+    
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(100px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    @keyframes slideOutRight {
+        from {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateX(100px);
+        }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

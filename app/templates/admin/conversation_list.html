@@ -1,0 +1,251 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="conversation-management">
+    <div class="page-header">
+        <h2>会話履歴</h2>
+        <div class="conversation-stats">
+            <div class="stat-item">
+                <span class="count">{{ conversations.total if conversations else 0 }}</span>
+                <span class="label">総会話数</span>
+            </div>
+        </div>
+    </div>
+    
+    {% if conversations and conversations.items %}
+    <div class="conversation-table-container">
+        <table class="conversation-table">
+            <thead>
+                <tr>
+                    <th>ユーザー情報</th>
+                    <th>開始時刻</th>
+                    <th>最終活動</th>
+                    <th>メッセージ数</th>
+                    <th>状態</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for conversation in conversations.items %}
+                <tr>
+                    <td>
+                        <div class="user-info">
+                            <div class="user-name">
+                                {% if conversation.user %}
+                                    {{ conversation.user.display_name or conversation.user.identifier }}
+                                    {% if conversation.user.user_type == 'staff' %}
+                                        <span class="user-badge staff">👨‍💼</span>
+                                    {% elif not conversation.user.is_anonymous %}
+                                        <span class="user-badge registered">✅</span>
+                                    {% endif %}
+                                {% elif conversation.user_display_name %}
+                                    {{ conversation.user_display_name }}
+                                    <span class="user-badge anonymous">👤</span>
+                                {% else %}
+                                    匿名ユーザー
+                                    <span class="user-badge anonymous">👤</span>
+                                {% endif %}
+                            </div>
+                            {% if conversation.user and conversation.user.department %}
+                            <div class="user-department">{{ conversation.user.department }}</div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if conversation.started_at %}
+                            {{ conversation.started_at.strftime('%Y/%m/%d %H:%M') }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if conversation.last_activity %}
+                            {{ conversation.last_activity.strftime('%Y/%m/%d %H:%M') }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="text-center">{{ conversation.messages|length }}</td>
+                    <td>
+                        {% if conversation.is_active %}
+                            <span class="status-badge active">🟢 アクティブ</span>
+                        {% else %}
+                            <span class="status-badge inactive">⚫ 終了</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{{ url_for('admin.conversation_detail', conversation_id=conversation.id) }}" 
+                               class="btn-icon" title="詳細を見る">👁️</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- ページネーション -->
+    {% if conversations.pages > 1 %}
+    <div class="pagination">
+        {% if conversations.has_prev %}
+            <a href="{{ url_for('admin.conversation_list', page=conversations.prev_num) }}" class="pagination-link">前へ</a>
+        {% endif %}
+        
+        {% for page_num in conversations.iter_pages() %}
+            {% if page_num %}
+                {% if page_num != conversations.page %}
+                    <a href="{{ url_for('admin.conversation_list', page=page_num) }}" class="pagination-link">{{ page_num }}</a>
+                {% else %}
+                    <span class="pagination-current">{{ page_num }}</span>
+                {% endif %}
+            {% else %}
+                <span class="pagination-ellipsis">…</span>
+            {% endif %}
+        {% endfor %}
+        
+        {% if conversations.has_next %}
+            <a href="{{ url_for('admin.conversation_list', page=conversations.next_num) }}" class="pagination-link">次へ</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div class="no-data">
+        <div class="no-data-message">
+            <h3>会話履歴が見つかりません</h3>
+            <p>まだ会話の記録がありません。</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.conversation-table-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.conversation-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.conversation-table th {
+    background-color: #00BFA5;
+    color: white;
+    padding: 15px;
+    text-align: left;
+    font-size: 16px;
+}
+
+.conversation-table td {
+    padding: 15px;
+    border-bottom: 1px solid #e0e0e0;
+    vertical-align: top;
+}
+
+.conversation-table tr:hover {
+    background-color: #f5f5f5;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.user-name {
+    font-weight: 500;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-department {
+    font-size: 12px;
+    color: #666;
+}
+
+.user-badge {
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.user-badge.staff {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+.user-badge.registered {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.user-badge.anonymous {
+    background-color: #f5f5f5;
+    color: #666;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.status-badge.active {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.status-badge.inactive {
+    background-color: #f5f5f5;
+    color: #666;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.pagination-link, .pagination-current, .pagination-ellipsis {
+    padding: 8px 12px;
+    border-radius: 4px;
+    text-decoration: none;
+}
+
+.pagination-link {
+    background-color: #f0f0f0;
+    color: #333;
+    transition: background-color 0.3s;
+}
+
+.pagination-link:hover {
+    background-color: #e0e0e0;
+}
+
+.pagination-current {
+    background-color: #00BFA5;
+    color: white;
+}
+
+.pagination-ellipsis {
+    color: #666;
+}
+</style>
+{% endblock %}

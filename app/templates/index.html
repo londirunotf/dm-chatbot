@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="chat-container">
+    <!-- FAQ一覧（左側） -->
+    <div class="faq-sidebar" id="faqSidebar">
+        <div class="faq-header">
+            <h2>
+                よくある質問
+                <button type="button" class="faq-close-btn mobile-only" id="faqCloseBtn">×</button>
+            </h2>
+            
+            <!-- FAQ検索バー -->
+            <div class="faq-search-container">
+                <input type="text" id="faqSearchInput" placeholder="FAQを検索..." class="faq-search-input">
+                <button type="button" id="faqSearchClear" class="faq-search-clear" title="検索をクリア">✕</button>
+            </div>
+            
+            <!-- カテゴリフィルター -->
+            <div class="faq-filter-container">
+                <select id="faqCategoryFilter" class="faq-category-filter">
+                    <option value="">すべてのカテゴリ</option>
+                    {% if faqs %}
+                        {% for category in faqs|map(attribute='category')|unique|list %}
+                            {% if category %}
+                            <option value="{{ category }}">{{ category }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
+            
+            <!-- 検索結果表示 -->
+            <div class="faq-search-results" style="display: none;">
+                <small id="faqSearchResultCount">0件の検索結果</small>
+            </div>
+        </div>
+
+        <!-- 人気FAQセクション -->
+        <div class="popular-faq-section" id="popularFaqSection">
+            <h3 class="popular-faq-title">🔥 人気のFAQ</h3>
+            <div class="popular-faq-list" id="popularFaqList">
+                <!-- 人気FAQが動的に挿入されます -->
+            </div>
+        </div>
+        
+        <div class="faq-list" id="faqList">
+            {% if faqs and faqs|length > 0 %}
+                {% for faq in faqs %}
+                <div class="faq-item" 
+                     data-faq-id="{{ faq.id }}"
+                     data-category="{{ faq.category or '' }}"
+                     data-keywords="{{ faq.keywords or '' }}"
+                     data-search-text="{{ (faq.title + ' ' + faq.question + ' ' + faq.answer + ' ' + (faq.keywords or ''))|lower }}">
+                    <div class="faq-item-header">
+                        <div class="faq-title">{{ faq.title }}</div>
+                        {% if faq.category %}
+                        <div class="faq-category-badge">{{ faq.category }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="faq-preview">{{ faq.question[:80] }}...</div>
+                    {% if faq.view_count > 0 %}
+                    <div class="faq-stats">
+                        <small>閲覧数: {{ faq.view_count }}</small>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-faq-message" style="padding: 20px; text-align: center; color: #666;">
+                    FAQが見つかりません。<br>
+                    システム管理者にお問い合わせください。
+                </div>
+            {% endif %}
+            
+            <!-- 検索結果がない場合のメッセージ -->
+            <div class="no-search-results" style="display: none; padding: 20px; text-align: center; color: #666;">
+                <div>検索結果が見つかりません。</div>
+                <small>別のキーワードで検索してみてください。</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- FAQサイドバーオーバーレイ（モバイル用） -->
+    <div class="faq-sidebar-overlay" id="faqSidebarOverlay"></div>
+    
+    <!-- チャットエリア（右側） -->
+    <div class="chat-area chat-main">
+        <!-- モバイル用チャットヘッダー -->
+        <div class="chat-header mobile-only">
+            <h1 class="chat-title">DM作業サポート</h1>
+            <div class="chat-controls">
+                <button type="button" class="faq-toggle-btn" id="faqToggleBtn">FAQ</button>
+            </div>
+        </div>
+        <!-- ユーザー識別パネル -->
+        <div class="user-identity-panel" id="userIdentityPanel">
+            <div class="identity-header">
+                <h4>ユーザー情報（任意）</h4>
+                <p>より良いサポートのため、お名前をお聞かせください。</p>
+            </div>
+            <div class="identity-form">
+                <div class="input-group">
+                    <input type="text" id="userNameInput" placeholder="お名前（例：田中太郎）" maxlength="50">
+                    <input type="text" id="userDepartmentInput" placeholder="所属部署（任意）" maxlength="50">
+                </div>
+                <div class="identity-actions">
+                    <button type="button" id="identifyUserBtn" class="btn btn-primary">確認</button>
+                    <button type="button" class="btn btn-link" onclick="document.getElementById('userIdentityPanel').style.display='none'">スキップ</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ユーザー表示エリア -->
+        <div class="user-display-area">
+            <div class="user-info">
+                <span class="user-icon">👤</span>
+                <span id="userDisplayName">匿名ユーザー</span>
+                <span id="userStatus" class="user-status anonymous">未識別</span>
+                <button type="button" id="clearIdentityBtn" class="btn-clear-identity" title="識別情報をクリア">✕</button>
+            </div>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="welcome-message bot-message">
+                <div class="message-bubble">
+                    <div class="message-content">
+                        こんにちは！DM送信作業についてお困りのことがあれば、お気軽にご質問ください。<br>
+                        左側のよくある質問もご参考ください。
+                    </div>
+                    <div class="message-time"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- よくある質問クイックアクセス -->
+        <div class="quick-faq-access" id="quickFaqAccess">
+            <div class="quick-faq-title">💡 よくある質問</div>
+            <div class="quick-faq-buttons" id="quickFaqButtons">
+                <button type="button" class="quick-faq-btn" data-search="送信権限">
+                    🔐 送信権限について
+                </button>
+                <button type="button" class="quick-faq-btn" data-search="エラー">
+                    ⚠️ エラーが発生したら
+                </button>
+                <button type="button" class="quick-faq-btn" data-search="ログイン">
+                    🔑 ログインできない
+                </button>
+                <button type="button" class="quick-faq-btn" data-search="ファイル">
+                    📁 ファイルについて
+                </button>
+            </div>
+        </div>
+        
+        <div class="chat-input-container">
+            <div class="input-group">
+                <textarea 
+                    id="messageInput" 
+                    placeholder="質問を入力してください..." 
+                    rows="3"
+                    maxlength="1000"></textarea>
+                <div class="input-actions">
+                    <button type="button" id="fileButton" class="file-button" title="ファイルを添付">
+                        📁
+                    </button>
+                    <button type="button" id="sendButton" class="send-button" style="display: flex; align-items: center; justify-content: center;">
+                        <img src="{{ url_for('static', filename='icon06.png') }}" alt="送信" class="send-icon-enabled icon-large" loading="lazy">
+                        <img src="{{ url_for('static', filename='icon07.png') }}" alt="送信不可" class="send-icon-disabled icon-large" style="display: none;" loading="lazy">
+                    </button>
+                </div>
+            </div>
+            <input type="file" id="fileInput" style="display: none;" accept="image/*,.pdf,.doc,.docx,.txt">
+            <div class="character-count">
+                <span id="charCount">0</span>/1000文字
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ詳細モーダル -->
+<div id="faqModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <h3 id="faqModalTitle"></h3>
+        <div class="faq-modal-body">
+            <div class="faq-question">
+                <strong>質問：</strong>
+                <p id="faqModalQuestion"></p>
+            </div>
+            <div class="faq-answer">
+                <strong>回答：</strong>
+                <p id="faqModalAnswer"></p>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button id="useFaqButton" class="use-faq-button">この回答をチャットに表示</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/user-identification.js') }}"></script>
+<script src="{{ url_for('static', filename='js/faq-search.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+// FAQデータをJavaScriptで使用できるようにする
+window.faqData = [
+    {% for faq in faqs %}
+    {
+        id: {{ faq.id }},
+        title: {{ faq.title|tojson }},
+        question: {{ faq.question|tojson }},
+        answer: {{ faq.answer|tojson }},
+        keywords: {{ faq.keywords|tojson }},
+        category: {{ faq.category|tojson }},
+        is_active: {{ faq.is_active|tojson }},
+        view_count: {{ faq.view_count }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
+
+// グローバル関数として定義
+window.showFaqModal = function(faqId) {
+    const faq = window.faqData?.find(f => f.id == faqId);
+    if (!faq) {
+        console.error('FAQ not found:', faqId);
+        return;
+    }
+    
+    // モーダルの内容を更新
+    document.getElementById('faqModalTitle').textContent = faq.title;
+    document.getElementById('faqModalQuestion').textContent = faq.question;
+    document.getElementById('faqModalAnswer').innerHTML = faq.answer.replace(/\n/g, '<br>');
+    
+    // モーダルを表示
+    const modal = document.getElementById('faqModal');
+    modal.style.display = 'block';
+    
+    // フォーカスをモーダル内に移動
+    const closeButton = modal.querySelector('.modal-close');
+    if (closeButton) {
+        closeButton.focus();
+    }
+    
+    // FAQ閲覧数をサーバーに送信（バックグラウンド）
+    updateFaqViewCount(faqId);
+};
+
+window.closeFaqModal = function() {
+    const modal = document.getElementById('faqModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+};
+
+function updateFaqViewCount(faqId) {
+    // FAQ閲覧数を更新（非同期処理）
+    fetch(`/api/faq/${faqId}/view`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content')
+        }
+    }).catch(error => {
+        console.log('FAQ閲覧数の更新に失敗:', error);
+        // エラーは表示しない（バックグラウンド処理のため）
+    });
+}
+
+// 初期化
+document.addEventListener('DOMContentLoaded', function() {
+    // FAQ要素にダブルクリックイベントを追加
+    const faqItems = document.querySelectorAll('.faq-item');
+    faqItems.forEach(item => {
+        // 既存のクリックイベントを削除してダブルクリックに変更
+        item.addEventListener('dblclick', function(e) {
+            e.preventDefault();
+            const faqId = this.dataset.faqId;
+            window.showFaqModal(faqId);
+        });
+        
+        // ダブルクリック時のCSSエフェクト
+        item.style.cursor = 'pointer';
+        item.title = 'ダブルクリックで詳細を表示';
+    });
+    
+    // モーダルイベント
+    const modal = document.getElementById('faqModal');
+    if (modal) {
+        // モーダル外側クリックで閉じる
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                window.closeFaqModal();
+            }
+        });
+        
+        // 閉じるボタン
+        const closeButton = modal.querySelector('.modal-close');
+        if (closeButton) {
+            closeButton.addEventListener('click', function() {
+                window.closeFaqModal();
+            });
+        }
+    }
+    
+    // Escキーで閉じる
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('faqModal');
+            if (modal && modal.style.display === 'block') {
+                window.closeFaqModal();
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

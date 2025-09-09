@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>ログイン - DM作業チャットサポート</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body class="auth-body">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1 class="auth-title">🔐 ログイン</h1>
+                <p class="auth-subtitle">DM作業チャットサポートシステム</p>
+            </div>
+            
+            <!-- フラッシュメッセージ -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="flash-message flash-{{ category }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            <form class="auth-form" method="POST" action="{{ url_for('auth.login') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                {% if request.args.get('next') %}
+                    <input type="hidden" name="next" value="{{ request.args.get('next') }}">
+                {% endif %}
+                
+                <div class="form-group">
+                    <label for="user_id" class="form-label">
+                        <span class="label-icon">👤</span>
+                        ユーザーID
+                    </label>
+                    <input 
+                        type="text" 
+                        id="user_id" 
+                        name="user_id" 
+                        class="form-input" 
+                        placeholder="ユーザーIDを入力してください"
+                        required
+                        autocomplete="username"
+                        maxlength="50">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label">
+                        <span class="label-icon">🔑</span>
+                        パスワード
+                    </label>
+                    <div class="password-input-container">
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            class="form-input" 
+                            placeholder="パスワードを入力してください"
+                            required
+                            autocomplete="current-password"
+                            maxlength="100">
+                        <button type="button" class="password-toggle" onclick="togglePassword()" title="パスワードを表示/非表示">
+                            👁️
+                        </button>
+                    </div>
+                </div>
+                
+                <button type="submit" class="auth-button primary">
+                    <span class="button-icon">🚀</span>
+                    ログイン
+                </button>
+            </form>
+            
+            <div class="auth-footer">
+                <div class="auth-info">
+                    <div class="info-item">
+                        <span class="info-icon">ℹ️</span>
+                        <span>管理者からユーザーIDとパスワードを受け取ってください</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-icon">🔒</span>
+                        <span>アカウントがロックされた場合は管理者にお問い合わせください</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- システム情報 -->
+        <div class="system-info">
+            <div class="system-status">
+                <span class="status-indicator healthy"></span>
+                システム稼働中
+            </div>
+            <div class="system-version">
+                DM作業チャットサポートシステム v2.0
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+</body>
+</html>

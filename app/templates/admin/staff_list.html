@@ -1,0 +1,387 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="staff-management">
+    <div class="page-header">
+        <h2>👨‍💼 職員管理</h2>
+        <div class="header-actions">
+            <div class="staff-stats">
+                <div class="stat-item">
+                    <span class="count">{{ staff_members|length if staff_members else 0 }}</span>
+                    <span class="label">総職員数</span>
+                </div>
+                <div class="stat-item">
+                    <span class="count">{{ staff_members|selectattr("is_active", "equalto", true)|list|length if staff_members else 0 }}</span>
+                    <span class="label">アクティブ職員</span>
+                </div>
+            </div>
+            <a href="{{ url_for('admin.staff_add') }}" class="btn btn-primary">
+                <span class="btn-icon">+</span>
+                職員追加
+            </a>
+        </div>
+    </div>
+    
+    {% if staff_members %}
+    <div class="staff-table-container">
+        <table class="staff-table">
+            <thead>
+                <tr>
+                    <th>職員情報</th>
+                    <th>権限</th>
+                    <th>回答統計</th>
+                    <th>最終対応</th>
+                    <th>状態</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for staff in staff_members %}
+                <tr class="{% if not staff.is_active %}inactive{% endif %}">
+                    <td>
+                        <div class="staff-info">
+                            <div class="staff-name">
+                                <span class="staff-icon">👨‍💼</span>
+                                {{ staff.name }}
+                            </div>
+                            <div class="staff-meta">
+                                <span class="staff-id">ID: {{ staff.staff_id }}</span>
+                                {% if staff.department %}
+                                <span class="staff-department">{{ staff.department }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="role-badge role-{{ staff.role }}">
+                            {% if staff.role == 'admin' %}
+                                管理者
+                            {% elif staff.role == 'supervisor' %}
+                                主任
+                            {% else %}
+                                職員
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="response-stats">
+                            <div class="stat-line">
+                                <span class="stat-value">{{ staff.responses_count or 0 }}</span>
+                                <span class="stat-label">件</span>
+                            </div>
+                            {% if staff.average_response_time %}
+                            <div class="stat-line">
+                                <span class="stat-value">{{ "%.1f"|format(staff.average_response_time) }}</span>
+                                <span class="stat-label">分</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if staff.last_response_at %}
+                            <span class="last-response">
+                                {{ staff.last_response_at.strftime('%m/%d %H:%M') }}
+                            </span>
+                        {% else %}
+                            <span class="no-response">未対応</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if staff.is_active %}
+                            <span class="status-badge active">有効</span>
+                        {% else %}
+                            <span class="status-badge inactive">無効</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{{ url_for('admin.staff_detail', staff_id=staff.id) }}" 
+                               class="action-btn detail-btn" title="詳細を見る">
+                                <span class="detail-icon">
+                                    <svg viewBox="0 0 24 24" width="24" height="24">
+                                        <circle cx="12" cy="12" r="10" fill="none" stroke="#00BFA5" stroke-width="2"/>
+                                        <circle cx="9" cy="9" r="2" fill="#00BFA5"/>
+                                        <circle cx="15" cy="9" r="2" fill="#00BFA5"/>
+                                        <path d="M8 15s1.5 2 4 2 4-2 4-2" stroke="#00BFA5" stroke-width="2" fill="none"/>
+                                    </svg>
+                                </span>
+                            </a>
+                            <a href="{{ url_for('admin.staff_edit', staff_id=staff.id) }}" 
+                               class="action-btn edit-btn" title="編集">
+                                <span class="edit-icon">
+                                    <svg viewBox="0 0 24 24" width="24" height="24">
+                                        <path d="M3 21l14.5-14.5L21 10l-3.5 3.5L3 21z" fill="#FFD700"/>
+                                        <path d="M17.5 6.5L21 10l-1-1-3.5-3.5L17.5 6.5z" fill="#FF4444"/>
+                                        <circle cx="18.5" cy="5.5" r="1.5" fill="#333"/>
+                                    </svg>
+                                </span>
+                            </a>
+                            {% if staff.is_active %}
+                                <button onclick="toggleStaffStatus({{ staff.id }}, false)" 
+                                        class="action-btn deactivate-btn" title="無効化">
+                                    <span class="deactivate-icon">⏸️</span>
+                                </button>
+                            {% else %}
+                                <button onclick="toggleStaffStatus({{ staff.id }}, true)" 
+                                        class="action-btn activate-btn" title="有効化">
+                                    <span class="activate-icon">▶️</span>
+                                </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="no-staff-message">
+        <div class="empty-state">
+            <div class="empty-icon">👥</div>
+            <h3>職員が登録されていません</h3>
+            <p>新しい職員を追加してください。</p>
+            <a href="{{ url_for('admin.staff_add') }}" class="btn btn-primary">
+                <span class="btn-icon">+</span>
+                最初の職員を追加
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+/**
+ * 職員の有効/無効を切り替える
+ */
+function toggleStaffStatus(staffId, activate) {
+    const action = activate ? '有効化' : '無効化';
+    if (!confirm(`この職員を${action}しますか？`)) {
+        return;
+    }
+    
+    fetch(`/admin/staff/${staffId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({ is_active: activate })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || `${action}に失敗しました`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(`${action}でエラーが発生しました`);
+    });
+}
+</script>
+
+<style>
+/* 職員管理専用スタイル */
+.staff-management {
+    padding: 20px;
+}
+
+.staff-stats {
+    display: flex;
+    gap: 20px;
+}
+
+.staff-table-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.staff-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.staff-table th,
+.staff-table td {
+    padding: 16px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.staff-table th {
+    background: linear-gradient(135deg, #00BFA5, #00897B);
+    color: white;
+    font-weight: 600;
+}
+
+.staff-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.staff-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #333;
+}
+
+.staff-icon {
+    font-size: 18px;
+}
+
+.staff-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: #666;
+}
+
+.role-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.role-admin {
+    background: linear-gradient(135deg, #FF6B6B, #EE5A52);
+    color: white;
+}
+
+.role-supervisor {
+    background: linear-gradient(135deg, #4ECDC4, #44A08D);
+    color: white;
+}
+
+.role-staff {
+    background: linear-gradient(135deg, #45B7D1, #96CEB4);
+    color: white;
+}
+
+.response-stats {
+    text-align: center;
+}
+
+.stat-line {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 2px;
+}
+
+.stat-value {
+    font-weight: 600;
+    color: #00BFA5;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #666;
+}
+
+.last-response {
+    font-size: 13px;
+    color: #333;
+}
+
+.no-response {
+    color: #999;
+    font-style: italic;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-badge.active {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+}
+
+.status-badge.inactive {
+    background: linear-gradient(135deg, #999, #666);
+    color: white;
+}
+
+.staff-table tr.inactive {
+    opacity: 0.6;
+    background: #f5f5f5;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+    background: none;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.detail-btn {
+    background: linear-gradient(135deg, #E3F2FD, #BBDEFB);
+}
+
+.edit-btn {
+    background: linear-gradient(135deg, #FFF8E1, #FFE082);
+}
+
+.deactivate-btn {
+    background: linear-gradient(135deg, #FFEBEE, #FFCDD2);
+}
+
+.activate-btn {
+    background: linear-gradient(135deg, #E8F5E8, #C8E6C9);
+}
+
+.no-staff-message {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-state {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.empty-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+}
+
+.empty-state h3 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.empty-state p {
+    color: #666;
+    margin-bottom: 30px;
+}
+</style>
+{% endblock %}

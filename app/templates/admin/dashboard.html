@@ -1,0 +1,345 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <div class="header-content">
+            <h2>ダッシュボード</h2>
+            <div class="dashboard-time">
+                <span id="lastUpdated"></span>
+                <button type="button" id="refreshDashboard" class="btn-refresh" title="データを更新">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 重要な統計情報 -->
+    <div class="dashboard-stats">
+        <div class="stat-card urgent">
+            <div class="stat-icon">
+                <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ pending_escalations }}</div>
+                <div class="stat-label">未解決の質問</div>
+                <div class="stat-trend" data-trend="{{ escalation_trend or 0 }}">
+                    <span class="trend-arrow"></span>
+                    <span class="trend-text">前日比</span>
+                </div>
+            </div>
+            <div class="stat-action">
+                <a href="{{ url_for('admin.escalation_list') }}" class="btn btn-primary">確認する</a>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M2.678 11.894a1 1 0 0 1 .287.801 10.97 10.97 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8.06 8.06 0 0 0 8 14c3.996 0 7-2.807 7-6 0-3.192-3.004-6-7-6S1 4.808 1 8c0 1.468.617 2.83 1.678 3.894zm-.493 3.905a21.682 21.682 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a9.68 9.68 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9.06 9.06 0 0 1-2.347-.306c-.52.263-1.639.742-3.468 1.105z"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ total_conversations }}</div>
+                <div class="stat-label">総会話数</div>
+                <div class="stat-meta">今日: {{ today_conversations or 0 }}件</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                    <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ total_faqs }}</div>
+                <div class="stat-label">アクティブなFAQ</div>
+                <div class="stat-meta">閲覧数: {{ total_faq_views or 0 }}</div>
+            </div>
+            <div class="stat-action">
+                <a href="{{ url_for('admin.faq_list') }}" class="btn btn-secondary">管理する</a>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                    <path fill-rule="evenodd" d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216z"/>
+                    <path d="M4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ user_stats.total_users or 0 }}</div>
+                <div class="stat-label">総ユーザー数</div>
+                <div class="stat-meta">登録済み: {{ user_stats.registered_users or 0 }}名</div>
+            </div>
+            <div class="stat-action">
+                <a href="{{ url_for('admin.user_list') }}" class="btn btn-secondary">一覧を見る</a>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"/>
+                    <path d="M13.5 5a.5.5 0 0 1 .5.5V7h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V8h-1.5a.5.5 0 0 1 0-1H13V5.5a.5.5 0 0 1 .5-.5z"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ staff_stats.active_staff or 0 }}</div>
+                <div class="stat-label">アクティブ職員</div>
+                <div class="stat-meta">総職員数: {{ staff_stats.total_staff or 0 }}名</div>
+            </div>
+            <div class="stat-action">
+                <a href="{{ url_for('admin.staff_list') }}" class="btn btn-secondary">管理する</a>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M4 11H2v3h2v-3zm5-4H7v7h2V7zm5-5v12h-2V2h2zm-2-1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1h-2zM6 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm-5 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3z"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ resolution_rate or 95 }}%</div>
+                <div class="stat-label">FAQ解決率</div>
+                <div class="stat-meta">過去7日間</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- チャートセクション -->
+    <div class="dashboard-charts">
+        <section class="chart-section">
+            <h3>利用状況グラフ</h3>
+            <div class="chart-container">
+                <canvas id="usageChart" width="400" height="200"></canvas>
+            </div>
+            <div class="chart-legend">
+                <div class="legend-item">
+                    <div class="legend-color conversations"></div>
+                    <span>会話数</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color escalations"></div>
+                    <span>エスカレーション</span>
+                </div>
+            </div>
+        </section>
+        
+        <section class="chart-section">
+            <h3>FAQ人気ランキング</h3>
+            <div class="faq-ranking">
+                <div class="ranking-list" id="faqRanking">
+                    <div class="ranking-item">
+                        <div class="rank">1</div>
+                        <div class="faq-info">
+                            <div class="faq-title">データ読み込み中...</div>
+                            <div class="faq-stats">-</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ranking-action">
+                    <a href="{{ url_for('admin.faq_list') }}?sort=views" class="btn btn-link">詳細を見る</a>
+                </div>
+            </div>
+        </section>
+    </div>
+    
+    <!-- メインコンテンツセクション -->
+    <div class="dashboard-sections">
+        <section class="dashboard-section">
+            <div class="section-header">
+                <h3>最近のアクティビティ</h3>
+                <div class="section-actions">
+                    <button type="button" id="filterActivity" class="btn-filter">フィルター</button>
+                </div>
+            </div>
+            <div class="activity-list" id="activityList">
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M2.678 11.894a1 1 0 0 1 .287.801 10.97 10.97 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8.06 8.06 0 0 0 8 14c3.996 0 7-2.807 7-6 0-3.192-3.004-6-7-6S1 4.808 1 8c0 1.468.617 2.83 1.678 3.894z"/>
+                        </svg>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-title">新しい質問が投稿されました</div>
+                        <div class="activity-meta">5分前 • ユーザー#1234</div>
+                    </div>
+                    <div class="activity-status pending">対応待ち</div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"/>
+                        </svg>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-title">FAQ「送信権限について」が更新されました</div>
+                        <div class="activity-meta">1時間前 • 管理者</div>
+                    </div>
+                    <div class="activity-status completed">完了</div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                        </svg>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-title">FAQ検索「不明な宛先」が実行されました</div>
+                        <div class="activity-meta">2時間前 • ユーザー#5678</div>
+                    </div>
+                    <div class="activity-status info">参考</div>
+                </div>
+            </div>
+            <div class="activity-actions">
+                <a href="#" class="btn btn-link">すべてのアクティビティを見る</a>
+            </div>
+        </section>
+        
+        <section class="dashboard-section">
+            <div class="section-header">
+                <h3>システム状態</h3>
+                <div class="system-status healthy">
+                    <div class="status-indicator"></div>
+                    <span>正常稼働中</span>
+                </div>
+            </div>
+            
+            <div class="system-metrics">
+                <div class="metric-item">
+                    <div class="metric-label">応答時間</div>
+                    <div class="metric-value">
+                        <span class="value">245ms</span>
+                        <span class="unit">平均</span>
+                    </div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">FAQ検索精度</div>
+                    <div class="metric-value">
+                        <span class="value">94%</span>
+                        <span class="unit">過去24時間</span>
+                    </div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">ユーザー満足度</div>
+                    <div class="metric-value">
+                        <span class="value">4.7</span>
+                        <span class="unit">/ 5.0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="quick-actions">
+                <h4>クイックアクション</h4>
+                <div class="action-grid">
+                    <a href="{{ url_for('admin.faq_list') }}?action=new" class="quick-action-btn">
+                        <div class="action-icon">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                            </svg>
+                        </div>
+                        <div class="action-text">FAQ追加</div>
+                    </a>
+                    <a href="{{ url_for('admin.escalation_list') }}" class="quick-action-btn">
+                        <div class="action-icon">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                            </svg>
+                        </div>
+                        <div class="action-text">質問確認</div>
+                    </a>
+                    <a href="#" class="quick-action-btn" id="generateReport">
+                        <div class="action-icon">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M4 11H2v3h2v-3zm5-4H7v7h2V7zm5-5v12h-2V2h2zm-2-1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1h-2zM6 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm-5 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3z"/>
+                            </svg>
+                        </div>
+                        <div class="action-text">レポート生成</div>
+                    </a>
+                    <a href="#" class="quick-action-btn" id="systemMaintenance">
+                        <div class="action-icon">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
+                                <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
+                            </svg>
+                        </div>
+                        <div class="action-text">メンテナンス</div>
+                    </a>
+                </div>
+            </div>
+        </section>
+    </div>
+    
+    <!-- 緊急アラート -->
+    <div class="dashboard-alerts" id="dashboardAlerts" style="display: none;">
+        <div class="alert-item high">
+            <div class="alert-icon">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                </svg>
+            </div>
+            <div class="alert-content">
+                <div class="alert-title">緊急: 大量のエスカレーション発生</div>
+                <div class="alert-message" id="alertMessage">現在{{ pending_escalations }}件の未解決質問があります。</div>
+            </div>
+            <div class="alert-actions">
+                <a href="{{ url_for('admin.escalation_list') }}" class="btn btn-small btn-primary">対応する</a>
+                <button type="button" class="btn btn-small btn-link alert-dismiss">閉じる</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- レポート生成モーダル -->
+<div id="reportModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <h3>レポート生成</h3>
+        <div class="report-options">
+            <div class="form-group">
+                <label>レポート種類</label>
+                <select id="reportType">
+                    <option value="conversations">会話レポート</option>
+                    <option value="faq_usage">FAQ利用状況</option>
+                    <option value="escalations">エスカレーション分析</option>
+                    <option value="user_satisfaction">ユーザー満足度</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>期間</label>
+                <select id="reportPeriod">
+                    <option value="7days">過去7日間</option>
+                    <option value="30days">過去30日間</option>
+                    <option value="90days">過去90日間</option>
+                    <option value="custom">カスタム期間</option>
+                </select>
+            </div>
+            <div class="form-group" id="customDateRange" style="display: none;">
+                <label>開始日</label>
+                <input type="date" id="startDate">
+                <label>終了日</label>
+                <input type="date" id="endDate">
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-primary" id="generateReportBtn">レポート生成</button>
+            <button type="button" class="btn btn-secondary modal-close">キャンセル</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin-dashboard.js') }}?v={{ range(1000000) | random }}"></script>
+{% endblock %}

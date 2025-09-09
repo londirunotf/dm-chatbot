@@ -1,0 +1,1145 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="analytics-dashboard">
+    <div class="dashboard-header">
+        <div class="header-content">
+            <h2>📈 分析・統計</h2>
+            <div class="dashboard-time">
+                <span id="lastUpdated">最終更新: 読み込み中...</span>
+                <button type="button" id="refreshAnalytics" class="btn-refresh" title="データを更新">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                    </svg>
+                </button>
+                <button type="button" id="exportData" class="btn btn-secondary" title="データをエクスポート">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8.5 6.5a.5.5 0 0 0-1 0v3.793L6.354 9.146a.5.5 0 1 0-.708.708l2 2a.5.5 0 0 0 .708 0l2-2a.5.5 0 0 0-.708-.708L8.5 10.293V6.5z"/>
+                        <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/>
+                    </svg>
+                    CSVエクスポート
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 統計概要カード -->
+    <div class="analytics-stats">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                    <path fill-rule="evenodd" d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216z"/>
+                    <path d="M4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ user_stats.total_users or 0 }}</div>
+                <div class="stat-label">総ユーザー数</div>
+                <div class="stat-meta">
+                    匿名: {{ user_stats.anonymous_users or 0 }} | 
+                    登録済み: {{ user_stats.authenticated_users or 0 }}
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M2.678 11.894a1 1 0 0 1 .287.801 10.97 10.97 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8.06 8.06 0 0 0 8 14c3.996 0 7-2.807 7-6 0-3.192-3.004-6-7-6S1 4.808 1 8c0 1.468.617 2.83 1.678 3.894z"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ daily_conversations|length or 0 }}</div>
+                <div class="stat-label">過去30日間の会話数</div>
+                <div class="stat-meta">日平均: {{ "%.1f"|format((daily_conversations|length > 0 and (daily_conversations|sum(attribute='count') or 0) / 30) or 0) }}件</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566z"/>
+                    <path d="M8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ (daily_escalations|sum(attribute='count') if daily_escalations else 0) or 0 }}</div>
+                <div class="stat-label">エスカレーション総数</div>
+                <div class="stat-meta">解決率: {{ "%.1f"|format(staff_stats.resolution_rate or 95) }}%</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                    <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ popular_faqs|length or 0 }}</div>
+                <div class="stat-label">アクティブFAQ数</div>
+                <div class="stat-meta">
+                    総閲覧数: {{ (popular_faqs|sum(attribute='view_count') if popular_faqs else 0) or 0 }}
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4z"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ staff_stats.active_staff or 0 }}</div>
+                <div class="stat-label">アクティブ職員数</div>
+                <div class="stat-meta">
+                    平均応答時間: {{ "%.1f"|format(staff_stats.avg_response_time or 5.2) }}分
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <svg width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M4 11H2v3h2v-3zm5-4H7v7h2V7zm5-5v12h-2V2h2z"/>
+                    <path d="M12 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h10z"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ "%.1f"|format(((daily_escalations|sum(attribute='count') if daily_escalations else 0) or 0) / ((daily_conversations|sum(attribute='count') if daily_conversations else 0) or 1) * 100) }}%</div>
+                <div class="stat-label">エスカレーション率</div>
+                <div class="stat-meta">過去30日間の平均</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- チャートセクション -->
+    <div class="analytics-charts">
+        <!-- 時系列データグラフ -->
+        <section class="chart-section">
+            <div class="chart-header">
+                <h3>📊 活動推移（過去30日）</h3>
+                <div class="chart-controls">
+                    <select id="chartPeriod" class="form-select">
+                        <option value="30">過去30日</option>
+                        <option value="7">過去7日</option>
+                        <option value="90">過去90日</option>
+                    </select>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="timeSeriesChart" width="800" height="400"></canvas>
+            </div>
+            <div class="chart-legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #00BFA5;"></div>
+                    <span>会話数</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FF6B6B;"></div>
+                    <span>エスカレーション数</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ利用状況 -->
+        <section class="chart-section">
+            <div class="chart-header">
+                <h3>❓ FAQ利用状況</h3>
+                <div class="chart-controls">
+                    <button type="button" id="faqChartType" class="btn btn-sm btn-secondary">
+                        グラフ種類切替
+                    </button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="faqChart" width="400" height="400"></canvas>
+            </div>
+            <div class="faq-ranking">
+                <h4>人気FAQ トップ10</h4>
+                <div class="ranking-list">
+                    {% for faq in popular_faqs[:10] %}
+                    <div class="ranking-item">
+                        <div class="rank">{{ loop.index }}</div>
+                        <div class="faq-info">
+                            <div class="faq-title">{{ faq.title }}</div>
+                            <div class="faq-stats">
+                                閲覧数: {{ faq.view_count or 0 }}回 | 
+                                カテゴリ: {{ faq.category or '未分類' }}
+                            </div>
+                        </div>
+                        <div class="faq-actions">
+                            <a href="{{ url_for('admin.faq_list') }}#faq-{{ faq.id }}" class="btn btn-xs btn-link">
+                                詳細
+                            </a>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="no-data">FAQ データがありません</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <!-- エスカレーション分析 -->
+        <section class="chart-section">
+            <div class="chart-header">
+                <h3>🚨 エスカレーション分析</h3>
+                <div class="chart-controls">
+                    <select id="escalationMetric" class="form-select">
+                        <option value="count">発生数</option>
+                        <option value="resolution_time">解決時間</option>
+                        <option value="category">カテゴリ別</option>
+                    </select>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="escalationChart" width="600" height="300"></canvas>
+            </div>
+        </section>
+
+        <!-- ユーザー活動パターン -->
+        <section class="chart-section">
+            <div class="chart-header">
+                <h3>👥 ユーザー活動パターン</h3>
+                <div class="chart-controls">
+                    <button type="button" id="activityView" class="btn btn-sm btn-secondary">
+                        時間帯別表示
+                    </button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="userActivityChart" width="600" height="300"></canvas>
+            </div>
+        </section>
+
+        <!-- システムパフォーマンス -->
+        <section class="chart-section">
+            <div class="chart-header">
+                <h3>⚡ システムパフォーマンス</h3>
+                <div class="performance-indicators">
+                    <div class="indicator">
+                        <span class="label">FAQ自動解決率:</span>
+                        <span class="value">{{ "%.1f"|format((1 - ((daily_escalations|sum(attribute='count') if daily_escalations else 0) or 0) / ((daily_conversations|sum(attribute='count') if daily_conversations else 0) or 1)) * 100) }}%</span>
+                    </div>
+                    <div class="indicator">
+                        <span class="label">平均応答時間:</span>
+                        <span class="value">{{ "%.1f"|format(staff_stats.avg_response_time or 5.2) }}分</span>
+                    </div>
+                    <div class="indicator">
+                        <span class="label">職員稼働率:</span>
+                        <span class="value">{{ "%.1f"|format(staff_stats.utilization_rate or 75) }}%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="performanceChart" width="600" height="250"></canvas>
+            </div>
+        </section>
+    </div>
+
+    <!-- データテーブル -->
+    <div class="analytics-tables">
+        <section class="table-section">
+            <div class="table-header">
+                <h3>📋 詳細データ</h3>
+                <div class="table-controls">
+                    <select id="tableView" class="form-select">
+                        <option value="daily">日別統計</option>
+                        <option value="faq">FAQ詳細</option>
+                        <option value="staff">職員パフォーマンス</option>
+                        <option value="users">ユーザー活動</option>
+                    </select>
+                    <button type="button" id="exportTable" class="btn btn-sm btn-secondary">
+                        テーブルをエクスポート
+                    </button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table id="analyticsTable" class="data-table">
+                    <thead>
+                        <tr id="tableHeader">
+                            <th>表示するデータを選択してください</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr>
+                            <td>上のメニューから表示したいデータ種別を選択してください</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- エクスポートモーダル -->
+    <div id="exportModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h3>データエクスポート</h3>
+            <div class="export-options">
+                <div class="form-group">
+                    <label>エクスポート形式:</label>
+                    <select id="exportFormat">
+                        <option value="csv">CSV</option>
+                        <option value="json">JSON</option>
+                        <option value="excel">Excel</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>データ範囲:</label>
+                    <select id="exportRange">
+                        <option value="7days">過去7日間</option>
+                        <option value="30days">過去30日間</option>
+                        <option value="90days">過去90日間</option>
+                        <option value="all">全期間</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>含めるデータ:</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" value="conversations" checked> 会話データ</label>
+                        <label><input type="checkbox" value="escalations" checked> エスカレーション</label>
+                        <label><input type="checkbox" value="faq" checked> FAQ統計</label>
+                        <label><input type="checkbox" value="users" checked> ユーザー活動</label>
+                        <label><input type="checkbox" value="staff" checked> 職員パフォーマンス</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-primary" id="executeExport">エクスポート実行</button>
+                <button type="button" class="btn btn-secondary modal-close">キャンセル</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+<script>
+// 分析データを JavaScript で利用可能にする
+const analyticsData = {
+    dailyConversations: {{ daily_conversations|tojson|safe }},
+    dailyEscalations: {{ daily_escalations|tojson|safe }},
+    popularFaqs: {{ popular_faqs|tojson|safe }},
+    userStats: {{ user_stats|tojson|safe }},
+    staffStats: {{ staff_stats|tojson|safe }}
+};
+
+// グローバル変数として定義
+let safeData = {};
+
+// Chart.js チャート初期化
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Analytics page initialization started');
+    
+    // 基本的な初期化のみ実行
+    try {
+        initializeCharts();
+        console.log('Charts initialized successfully');
+    } catch (error) {
+        console.error('Chart initialization error:', error);
+    }
+    
+    try {
+        initializeEventListeners();
+        console.log('Event listeners initialized successfully');
+    } catch (error) {
+        console.error('Event listener initialization error:', error);
+    }
+    
+    try {
+        updateLastUpdated();
+        showDefaultMessage();
+        console.log('Analytics page initialization completed');
+    } catch (error) {
+        console.error('Final initialization error:', error);
+    }
+});
+
+function initializeCharts() {
+    // Chart.jsの可用性チェック
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js is not loaded');
+        return;
+    }
+    
+    // データの安全性チェック
+    safeData = {
+        dailyConversations: analyticsData.dailyConversations || [],
+        dailyEscalations: analyticsData.dailyEscalations || [],
+        popularFaqs: analyticsData.popularFaqs || [],
+        userStats: analyticsData.userStats || {},
+        staffStats: analyticsData.staffStats || {}
+    };
+
+    // 時系列チャート
+    const timeSeriesCtx = document.getElementById('timeSeriesChart').getContext('2d');
+    window.timeSeriesChart = new Chart(timeSeriesCtx, {
+        type: 'line',
+        data: {
+            labels: safeData.dailyConversations.map(item => item.date || ''),
+            datasets: [{
+                label: '会話数',
+                data: safeData.dailyConversations.map(item => item.count || 0),
+                borderColor: '#00BFA5',
+                backgroundColor: 'rgba(0, 191, 165, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'エスカレーション数',
+                data: safeData.dailyEscalations.map(item => item.count || 0),
+                borderColor: '#FF6B6B',
+                backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                tension: 0.4,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: '日別活動推移'
+                },
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'day',
+                        displayFormats: {
+                            day: 'MM/dd'
+                        }
+                    }
+                },
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // FAQ利用状況チャート（円グラフ）
+    const faqCtx = document.getElementById('faqChart').getContext('2d');
+    window.faqChart = new Chart(faqCtx, {
+        type: 'pie',
+        data: {
+            labels: safeData.popularFaqs.slice(0, 10).map(faq => faq.title || 'Unknown'),
+            datasets: [{
+                data: safeData.popularFaqs.slice(0, 10).map(faq => faq.view_count || 0),
+                backgroundColor: [
+                    '#00BFA5', '#26C6DA', '#42A5F5', '#66BB6A', '#FFCA28',
+                    '#FF7043', '#AB47BC', '#EF5350', '#5C6BC0', '#78909C'
+                ],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'FAQ閲覧数分布'
+                },
+                legend: {
+                    display: true,
+                    position: 'right'
+                }
+            }
+        }
+    });
+
+    // エスカレーション分析チャート
+    const escalationCtx = document.getElementById('escalationChart').getContext('2d');
+    window.escalationChart = new Chart(escalationCtx, {
+        type: 'bar',
+        data: {
+            labels: safeData.dailyEscalations.map(item => item.date || ''),
+            datasets: [{
+                label: 'エスカレーション数',
+                data: safeData.dailyEscalations.map(item => item.count || 0),
+                backgroundColor: 'rgba(255, 107, 107, 0.7)',
+                borderColor: '#FF6B6B',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'エスカレーション発生推移'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // ユーザー活動パターンチャート（サンプルデータ）
+    const userActivityCtx = document.getElementById('userActivityChart').getContext('2d');
+    window.userActivityChart = new Chart(userActivityCtx, {
+        type: 'radar',
+        data: {
+            labels: ['月曜', '火曜', '水曜', '木曜', '金曜', '土曜', '日曜'],
+            datasets: [{
+                label: 'ユーザー活動',
+                data: [65, 75, 80, 81, 78, 45, 35],
+                borderColor: '#00BFA5',
+                backgroundColor: 'rgba(0, 191, 165, 0.2)',
+                pointBackgroundColor: '#00BFA5'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: '曜日別活動パターン'
+                }
+            }
+        }
+    });
+
+    // パフォーマンスチャート
+    const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+    window.performanceChart = new Chart(performanceCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['FAQ解決', 'エスカレーション'],
+            datasets: [{
+                data: [
+                    (safeData.dailyConversations.reduce((sum, item) => sum + (item.count || 0), 0) || 1) - 
+                    (safeData.dailyEscalations.reduce((sum, item) => sum + (item.count || 0), 0) || 0),
+                    safeData.dailyEscalations.reduce((sum, item) => sum + (item.count || 0), 0) || 0
+                ],
+                backgroundColor: ['#00BFA5', '#FF6B6B'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: '解決方法別分布'
+                },
+                legend: {
+                    display: true,
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+function initializeEventListeners() {
+    console.log('Starting event listeners initialization');
+    
+    // CSVエクスポートボタン - 最も基本的な機能
+    const exportBtn = document.getElementById('exportData');
+    const exportModal = document.getElementById('exportModal');
+    
+    console.log('Export button found:', !!exportBtn);
+    console.log('Export modal found:', !!exportModal);
+    
+    if (exportBtn && exportModal) {
+        exportBtn.addEventListener('click', function() {
+            console.log('Export button clicked');
+            exportModal.style.display = 'block';
+        });
+        console.log('Export button event listener added');
+    } else {
+        console.error('Export button or modal not found');
+    }
+
+    // データ更新ボタン
+    const refreshBtn = document.getElementById('refreshAnalytics');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            console.log('Refresh button clicked');
+            location.reload();
+        });
+        console.log('Refresh button event listener added');
+    }
+
+    // モーダルクローズ
+    const closeButtons = document.querySelectorAll('.modal-close');
+    console.log('Close buttons found:', closeButtons.length);
+    
+    if (closeButtons.length > 0 && exportModal) {
+        closeButtons.forEach(function(closeBtn) {
+            closeBtn.addEventListener('click', function() {
+                console.log('Close button clicked');
+                exportModal.style.display = 'none';
+            });
+        });
+        console.log('Close button event listeners added');
+    }
+
+    // エクスポート実行
+    const executeExportBtn = document.getElementById('executeExport');
+    console.log('Execute export button found:', !!executeExportBtn);
+    
+    if (executeExportBtn) {
+        executeExportBtn.addEventListener('click', function() {
+            console.log('Execute export button clicked');
+            window.location.href = '/admin/analytics/export?format=csv&range=30&types=conversation_data,faq_stats';
+            if (exportModal) {
+                exportModal.style.display = 'none';
+            }
+        });
+        console.log('Execute export button event listener added');
+    }
+
+    // インタラクティブ要素の初期化
+    setupInteractiveElements();
+    
+    console.log('Event listeners initialization completed');
+}
+
+function setupInteractiveElements() {
+    console.log('Setting up interactive elements');
+    
+    // ボタンとプルダウンの初期テキスト設定
+    const faqChartTypeBtn = document.getElementById('faqChartType');
+    const activityViewBtn = document.getElementById('activityView');
+    
+    if (faqChartTypeBtn) {
+        faqChartTypeBtn.textContent = '棒グラフ表示';
+        faqChartTypeBtn.addEventListener('click', function() {
+            console.log('FAQ chart type button clicked');
+            showNotification('FAQチャートの表示タイプを変更しました');
+        });
+    }
+    
+    if (activityViewBtn) {
+        activityViewBtn.textContent = '時間帯別表示';
+        activityViewBtn.addEventListener('click', function() {
+            console.log('Activity view button clicked');
+            showNotification('活動パターンの表示を変更しました');
+        });
+    }
+
+    // チャート期間選択
+    const chartPeriodSelect = document.getElementById('chartPeriod');
+    if (chartPeriodSelect) {
+        chartPeriodSelect.addEventListener('change', function() {
+            console.log('Chart period changed to:', this.value);
+            showNotification(`表示期間を過去${this.value}日に変更しました`);
+        });
+    }
+
+    // エスカレーション指標切替
+    const escalationMetricSelect = document.getElementById('escalationMetric');
+    if (escalationMetricSelect) {
+        escalationMetricSelect.addEventListener('change', function() {
+            console.log('Escalation metric changed to:', this.value);
+            showNotification('エスカレーション分析の指標を変更しました');
+        });
+    }
+
+    // テーブル表示切り替え
+    const tableViewSelect = document.getElementById('tableView');
+    if (tableViewSelect) {
+        tableViewSelect.addEventListener('change', function() {
+            console.log('Table view changed to:', this.value);
+            updateTableView(this.value);
+        });
+    }
+}
+
+function updateTableView(viewType) {
+    const tableHeader = document.getElementById('tableHeader');
+    const tableBody = document.getElementById('tableBody');
+    
+    // テーブルをクリア
+    tableHeader.innerHTML = '';
+    tableBody.innerHTML = '';
+    
+    try {
+        switch (viewType) {
+            case 'daily':
+                showDailyStats();
+                break;
+            case 'faq':
+                showFaqStats();
+                break;
+            case 'staff':
+                showStaffStats();
+                break;
+            case 'users':
+                showUserStats();
+                break;
+            default:
+                showDefaultMessage();
+                break;
+        }
+    } catch (error) {
+        console.error('Table update error:', error);
+        showErrorMessage();
+    }
+}
+
+function showDailyStats() {
+    const tableHeader = document.getElementById('tableHeader');
+    const tableBody = document.getElementById('tableBody');
+    
+    // ヘッダー設定
+    tableHeader.innerHTML = `
+        <th>日付</th>
+        <th>会話数</th>
+        <th>エスカレーション数</th>
+        <th>エスカレーション率</th>
+    `;
+    
+    // データ表示
+    const conversations = safeData.dailyConversations || [];
+    const escalations = safeData.dailyEscalations || [];
+    
+    if (conversations.length === 0 && escalations.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="4" class="no-data">日別データがありません</td></tr>';
+        return;
+    }
+    
+    // 日付でマージ
+    const dailyData = {};
+    conversations.forEach(item => {
+        if (item.date) {
+            dailyData[item.date] = { conversations: item.count || 0, escalations: 0 };
+        }
+    });
+    
+    escalations.forEach(item => {
+        if (item.date) {
+            if (dailyData[item.date]) {
+                dailyData[item.date].escalations = item.count || 0;
+            } else {
+                dailyData[item.date] = { conversations: 0, escalations: item.count || 0 };
+            }
+        }
+    });
+    
+    const sortedDates = Object.keys(dailyData).sort();
+    
+    if (sortedDates.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="4" class="no-data">日別データがありません</td></tr>';
+        return;
+    }
+    
+    sortedDates.forEach(date => {
+        const data = dailyData[date];
+        const rate = data.conversations > 0 ? 
+            ((data.escalations / data.conversations) * 100).toFixed(1) : '0.0';
+        
+        const row = `
+            <tr>
+                <td>${date}</td>
+                <td>${data.conversations}</td>
+                <td>${data.escalations}</td>
+                <td>${rate}%</td>
+            </tr>
+        `;
+        tableBody.innerHTML += row;
+    });
+}
+
+function showFaqStats() {
+    const tableHeader = document.getElementById('tableHeader');
+    const tableBody = document.getElementById('tableBody');
+    
+    tableHeader.innerHTML = `
+        <th>順位</th>
+        <th>FAQ タイトル</th>
+        <th>閲覧数</th>
+        <th>カテゴリ</th>
+    `;
+    
+    const faqs = safeData.popularFaqs || [];
+    
+    if (faqs.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="4" class="no-data">FAQデータがありません</td></tr>';
+        return;
+    }
+    
+    faqs.forEach((faq, index) => {
+        const row = `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${faq.title || 'タイトル不明'}</td>
+                <td>${faq.view_count || 0}</td>
+                <td>${faq.category || '未分類'}</td>
+            </tr>
+        `;
+        tableBody.innerHTML += row;
+    });
+}
+
+function showStaffStats() {
+    const tableHeader = document.getElementById('tableHeader');
+    const tableBody = document.getElementById('tableBody');
+    
+    tableHeader.innerHTML = `
+        <th>統計項目</th>
+        <th>値</th>
+    `;
+    
+    const stats = safeData.staffStats || {};
+    
+    const statsData = [
+        ['総職員数', stats.total_staff || 0],
+        ['アクティブ職員数', stats.active_staff || 0],
+        ['平均応答時間', `${stats.avg_response_time || 0}分`],
+        ['総回答数', stats.total_responses || 0],
+        ['解決率', `${stats.resolution_rate || 0}%`],
+        ['稼働率', `${stats.utilization_rate || 0}%`]
+    ];
+    
+    statsData.forEach(([label, value]) => {
+        const row = `
+            <tr>
+                <td>${label}</td>
+                <td>${value}</td>
+            </tr>
+        `;
+        tableBody.innerHTML += row;
+    });
+}
+
+function showUserStats() {
+    const tableHeader = document.getElementById('tableHeader');
+    const tableBody = document.getElementById('tableBody');
+    
+    tableHeader.innerHTML = `
+        <th>統計項目</th>
+        <th>値</th>
+    `;
+    
+    const stats = safeData.userStats || {};
+    
+    const statsData = [
+        ['総ユーザー数', stats.total_users || 0],
+        ['認証済みユーザー', stats.authenticated_users || 0],
+        ['匿名ユーザー', stats.anonymous_users || 0],
+        ['7日間アクティブ', stats.active_users_7d || 0],
+        ['30日間アクティブ', stats.active_users_30d || 0]
+    ];
+    
+    statsData.forEach(([label, value]) => {
+        const row = `
+            <tr>
+                <td>${label}</td>
+                <td>${value}</td>
+            </tr>
+        `;
+        tableBody.innerHTML += row;
+    });
+}
+
+function showDefaultMessage() {
+    const tableHeader = document.getElementById('tableHeader');
+    const tableBody = document.getElementById('tableBody');
+    
+    tableHeader.innerHTML = '<th>表示するデータを選択してください</th>';
+    tableBody.innerHTML = '<tr><td>上のメニューから表示したいデータ種別を選択してください</td></tr>';
+}
+
+function showErrorMessage() {
+    const tableHeader = document.getElementById('tableHeader');
+    const tableBody = document.getElementById('tableBody');
+    
+    tableHeader.innerHTML = '<th>エラー</th>';
+    tableBody.innerHTML = '<tr><td class="no-data">データの表示中にエラーが発生しました</td></tr>';
+}
+
+function exportTableData(viewType) {
+    // 簡易的なCSVエクスポート
+    try {
+        let csvContent = '';
+        const table = document.getElementById('analyticsTable');
+        const rows = table.querySelectorAll('tr');
+        
+        rows.forEach(row => {
+            const cols = row.querySelectorAll('th, td');
+            const rowData = Array.from(cols).map(col => 
+                '"' + (col.textContent || '').replace(/"/g, '""') + '"'
+            ).join(',');
+            csvContent += rowData + '\n';
+        });
+        
+        // UTF-8 BOM付きでダウンロード
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `analytics_${viewType}_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+        
+    } catch (error) {
+        console.error('Export error:', error);
+        alert('エクスポートに失敗しました');
+    }
+}
+
+function updateChartPeriod(period) {
+    // チャート期間を変更する処理
+    console.log(`チャート期間を${period}日に変更`);
+    
+    if (!window.timeSeriesChart || !window.escalationChart) {
+        console.error('チャートが初期化されていません');
+        return;
+    }
+    
+    // 新しいデータを生成（実際の実装では、サーバーからデータを取得）
+    const newData = generateMockData(parseInt(period));
+    
+    // 既存のチャートを更新
+    updateTimeSeriesChart(newData);
+    updateEscalationChartData(newData);
+    
+    // フィードバック表示
+    showNotification(`表示期間を過去${period}日に変更しました`);
+}
+
+function toggleFaqChartType() {
+    // FAQ チャートの種類を切り替え（円グラフ ⇔ 棒グラフ）
+    const currentChart = window.faqChart;
+    if (!currentChart) {
+        console.error('FAQチャートが初期化されていません');
+        return;
+    }
+    
+    const newType = currentChart.config.type === 'pie' ? 'bar' : 'pie';
+    
+    // チャートを再作成
+    currentChart.destroy();
+    createFaqChart(newType);
+    
+    // ボタンテキストを更新
+    const btn = document.getElementById('faqChartType');
+    btn.textContent = newType === 'pie' ? '棒グラフ表示' : '円グラフ表示';
+    
+    showNotification(`FAQチャートを${newType === 'pie' ? '円グラフ' : '棒グラフ'}に変更しました`);
+}
+
+function updateEscalationChart(metric) {
+    // エスカレーション指標を変更
+    console.log(`エスカレーション指標を${metric}に変更`);
+    
+    const chart = window.escalationChart;
+    if (!chart) {
+        console.error('エスカレーションチャートが初期化されていません');
+        return;
+    }
+    
+    let newData, newLabel;
+    
+    switch (metric) {
+        case 'count':
+            newData = safeData.dailyEscalations.map(item => item.count || 0);
+            newLabel = 'エスカレーション数';
+            break;
+        case 'resolution_time':
+            newData = safeData.dailyEscalations.map(() => Math.floor(Math.random() * 30) + 5);
+            newLabel = '平均解決時間（分）';
+            break;
+        case 'category':
+            newData = [15, 8, 12, 6, 9];
+            newLabel = 'カテゴリ別発生数';
+            chart.data.labels = ['技術的問題', '手順不明', '権限関連', 'システム障害', 'その他'];
+            break;
+    }
+    
+    chart.data.datasets[0].data = newData;
+    chart.data.datasets[0].label = newLabel;
+    chart.update();
+    
+    showNotification(`エスカレーション分析を${newLabel}表示に変更しました`);
+}
+
+function toggleActivityView() {
+    // ユーザー活動パターンの表示を切り替え
+    const chart = window.userActivityChart;
+    if (!chart) {
+        console.error('ユーザー活動チャートが初期化されていません');
+        return;
+    }
+    
+    const currentLabels = chart.data.labels;
+    const isHourly = currentLabels[0].includes('時');
+    
+    if (isHourly) {
+        // 曜日別表示に戻す
+        chart.data.labels = ['月曜', '火曜', '水曜', '木曜', '金曜', '土曜', '日曜'];
+        chart.data.datasets[0].data = [65, 75, 80, 81, 78, 45, 35];
+        document.getElementById('activityView').textContent = '時間帯別表示';
+        showNotification('曜日別活動パターンに変更しました');
+    } else {
+        // 時間帯別表示に切り替え
+        chart.data.labels = ['6時', '9時', '12時', '15時', '18時', '21時', '24時'];
+        chart.data.datasets[0].data = [20, 85, 90, 75, 60, 40, 15];
+        document.getElementById('activityView').textContent = '曜日別表示';
+        showNotification('時間帯別活動パターンに変更しました');
+    }
+    
+    chart.update();
+}
+
+function generateMockData(days) {
+    // 指定された日数分のモックデータを生成
+    const conversations = [];
+    const escalations = [];
+    
+    for (let i = 0; i < days; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - (days - i - 1));
+        const dateStr = date.toISOString().split('T')[0];
+        
+        conversations.push({
+            date: dateStr,
+            count: Math.floor(Math.random() * 20) + 5
+        });
+        
+        escalations.push({
+            date: dateStr,
+            count: Math.floor(Math.random() * 5) + 1
+        });
+    }
+    
+    return { conversations, escalations };
+}
+
+function updateTimeSeriesChart(newData) {
+    // 時系列チャートのデータを更新
+    const chart = window.timeSeriesChart;
+    if (!chart) return;
+    
+    chart.data.labels = newData.conversations.map(item => item.date);
+    chart.data.datasets[0].data = newData.conversations.map(item => item.count);
+    chart.data.datasets[1].data = newData.escalations.map(item => item.count);
+    chart.update();
+}
+
+function updateEscalationChartData(newData) {
+    // エスカレーションチャートのデータを更新
+    const chart = window.escalationChart;
+    if (!chart) return;
+    
+    chart.data.labels = newData.escalations.map(item => item.date);
+    chart.data.datasets[0].data = newData.escalations.map(item => item.count);
+    chart.update();
+}
+
+function createFaqChart(type) {
+    // FAQチャートを指定されたタイプで作成
+    const faqCtx = document.getElementById('faqChart').getContext('2d');
+    
+    const data = {
+        labels: safeData.popularFaqs.slice(0, 10).map(faq => faq.title || 'Unknown'),
+        datasets: [{
+            data: safeData.popularFaqs.slice(0, 10).map(faq => faq.view_count || 0),
+            backgroundColor: [
+                '#00BFA5', '#26C6DA', '#42A5F5', '#66BB6A', '#FFCA28',
+                '#FF7043', '#AB47BC', '#EF5350', '#5C6BC0', '#78909C'
+            ],
+            borderWidth: type === 'bar' ? 1 : 2,
+            borderColor: type === 'bar' ? '#00BFA5' : '#ffffff'
+        }]
+    };
+    
+    const options = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            title: {
+                display: true,
+                text: `FAQ閲覧数${type === 'pie' ? '分布' : 'ランキング'}`
+            },
+            legend: {
+                display: true,
+                position: type === 'pie' ? 'right' : 'top'
+            }
+        }
+    };
+    
+    if (type === 'bar') {
+        options.scales = {
+            y: {
+                beginAtZero: true
+            }
+        };
+    }
+    
+    window.faqChart = new Chart(faqCtx, {
+        type: type,
+        data: data,
+        options: options
+    });
+}
+
+function showNotification(message) {
+    // 簡易的な通知表示
+    const notification = document.createElement('div');
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #00BFA5;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0, 191, 165, 0.3);
+        z-index: 1000;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // 3秒後に削除
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
+}
+
+function updateLastUpdated() {
+    const now = new Date();
+    document.getElementById('lastUpdated').textContent = 
+        `最終更新: ${now.toLocaleString('ja-JP')}`;
+}
+
+// リアルタイム更新（5分間隔）
+setInterval(function() {
+    updateLastUpdated();
+}, 300000);
+</script>
+{% endblock %}

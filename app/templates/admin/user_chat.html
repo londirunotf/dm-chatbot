@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>チャットルーム - {{ target_user.display_name or target_user.identifier }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ range(1000000) | random }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/private-chat.css') }}?v={{ range(1000000) | random }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}?v={{ range(1000000) | random }}">
+    <style>
+        /* 管理者画面用の特別なスタイル */
+        .admin-chat-header {
+            background: linear-gradient(135deg, #00BFA5 0%, #00695C 100%);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,191,165,0.15);
+            border-bottom: 3px solid rgba(255,255,255,0.1);
+            flex-shrink: 0;
+            height: 80px;
+        }
+        
+        .admin-chat-header .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .admin-chat-header .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00897B, #00695C);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            border: 3px solid rgba(255,255,255,0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .admin-chat-header .user-details h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .admin-chat-header .user-details .user-subtitle {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-top: 4px;
+            font-weight: 400;
+        }
+        
+        .admin-chat-header .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .admin-chat-header .header-actions a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 18px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .admin-chat-header .header-actions a:hover {
+            background: rgba(255,255,255,0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+        
+        .admin-chat-indicator {
+            position: fixed;
+            top: 90px;
+            right: 30px;
+            background: linear-gradient(135deg, #00BFA5, #00897B);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 13px;
+            font-weight: 600;
+            z-index: 1000;
+            box-shadow: 0 4px 16px rgba(0, 191, 165, 0.4);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.2);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        /* FAQモーダルスタイル */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+        }
+        
+        .faq-modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        
+        .modal.show .faq-modal-content {
+            transform: scale(1);
+        }
+        
+        .modal-header {
+            padding: 20px 25px 15px;
+            border-bottom: 1px solid #e0e0e0;
+            background: linear-gradient(135deg, #00BFA5, #00897B);
+            color: white;
+            border-radius: 12px 12px 0 0;
+            position: relative;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            padding-right: 60px;
+        }
+        
+        .modal-close {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(255, 255, 255, 0.95);
+            font-size: 18px;
+            color: #00695C;
+            cursor: pointer;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            font-weight: bold;
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            z-index: 1001;
+            overflow: hidden;
+        }
+        
+        .modal-close::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+            transform: translateX(-100%);
+            transition: transform 0.6s;
+        }
+        
+        .modal-close:hover {
+            background: #ffffff;
+            border-color: #00BFA5;
+            color: #00695C;
+            transform: scale(1.1) rotate(90deg);
+            box-shadow: 0 6px 20px rgba(0, 191, 165, 0.4);
+        }
+        
+        .modal-close:hover::before {
+            transform: translateX(100%);
+        }
+        
+        .modal-close:active {
+            transform: scale(0.95) rotate(90deg);
+        }
+        
+        .modal-body {
+            padding: 25px;
+        }
+        
+        .faq-detail-section {
+            margin-bottom: 25px;
+        }
+        
+        .faq-detail-section:last-child {
+            margin-bottom: 0;
+        }
+        
+        .faq-detail-section h4 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #00695C;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #E0F2F1;
+        }
+        
+        .faq-question-text {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #333;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #00BFA5;
+        }
+        
+        .faq-answer-text {
+            font-size: 15px;
+            line-height: 1.7;
+            color: #444;
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .faq-meta-info {
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .faq-category {
+            display: inline-block;
+            background: linear-gradient(135deg, #00BFA5, #00897B);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .faq-keywords {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .faq-stats {
+            font-size: 13px;
+            color: #888;
+            margin-left: auto;
+        }
+        
+        .modal-footer {
+            padding: 15px 25px 20px;
+            border-top: 1px solid #e0e0e0;
+            text-align: right;
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+            border: 1px solid #ddd;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+            color: #333;
+        }
+        
+        /* 管理者特有のUI要素 */
+        .admin-badge {
+            background: linear-gradient(135deg, #00BFA5, #00897B);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0, 191, 165, 0.3);
+        }
+        
+        .staff-indicator {
+            display: inline-block;
+            background: linear-gradient(135deg, #00BFA5, #00897B);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 10px;
+            margin-left: 8px;
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(0, 191, 165, 0.3);
+        }
+        
+        /* 3カラム構成のスタイル */
+        .admin-three-column-container {
+            display: flex;
+            height: calc(100vh - 80px);
+            overflow: hidden;
+        }
+        
+        .faq-sidebar {
+            width: 300px;
+            flex-shrink: 0;
+            background: #f8f9fa;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+        }
+        
+        .user-list-column {
+            width: 320px;
+            flex-shrink: 0;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .user-list-header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            background: #f8f9fa;
+        }
+        
+        .user-list-header h3 {
+            margin: 0 0 15px 0;
+            color: #00695C;
+            font-size: 18px;
+        }
+        
+        .user-search input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .user-list-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .user-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px;
+            margin-bottom: 8px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .user-item:hover {
+            background: #f0f8ff;
+            border-color: #00BFA5;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,191,165,0.15);
+        }
+        
+        .user-item.selected {
+            background: #e0f7fa;
+            border-color: #00BFA5;
+            box-shadow: 0 0 0 2px rgba(0,191,165,0.2);
+        }
+        
+        .user-item .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #00BFA5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        
+        .user-item .user-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .user-item .user-name {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .user-item .user-meta {
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .user-item .message-badge {
+            background: #00BFA5;
+            color: white;
+            border-radius: 10px;
+            padding: 2px 6px;
+            font-size: 10px;
+            font-weight: 500;
+            min-width: 18px;
+            text-align: center;
+        }
+        
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+        
+        .loading-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .no-users-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+        
+        .no-users-message h4 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        /* モバイル対応 */
+        @media (max-width: 1024px) {
+            .admin-three-column-container {
+                flex-direction: column;
+            }
+            
+            .faq-sidebar {
+                width: 100%;
+                height: 200px;
+            }
+            
+            .user-list-column {
+                width: 100%;
+                height: 250px;
+            }
+            
+            .chat-area {
+                height: calc(100vh - 530px);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .admin-chat-header {
+                flex-direction: column;
+                gap: 10px;
+                padding: 15px;
+                height: auto;
+                min-height: 70px;
+            }
+            
+            .admin-chat-header .header-actions {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            
+            .admin-chat-indicator {
+                top: 80px;
+                right: 15px;
+                left: 15px;
+                text-align: center;
+            }
+            
+            .faq-sidebar {
+                height: 150px;
+            }
+            
+            .user-list-column {
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 管理者チャット識別インジケーター -->
+    <div class="admin-chat-indicator">
+        👨‍💼 管理者モード
+    </div>
+
+    <!-- ヘッダー -->
+    <header class="admin-chat-header">
+        <div class="user-info">
+            <div class="user-avatar">
+                {% if target_user.user_type == 'staff' %}
+                    👨‍💼
+                {% else %}
+                    👤
+                {% endif %}
+            </div>
+            <div class="user-details">
+                <h2>{{ target_user.display_name or target_user.identifier }}</h2>
+                <div class="user-subtitle">
+                    {% if target_user.department %}{{ target_user.department }} • {% endif %}
+                    {% if target_user.user_type == 'staff' %}職員{% else %}利用者{% endif %}
+                    <span class="staff-indicator">管理者として閲覧中</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('admin.user_detail', user_id=target_user.id) }}">📋 詳細</a>
+            <a href="{{ url_for('admin.user_list') }}">📝 ユーザー一覧</a>
+            <a href="{{ url_for('admin.dashboard') }}">🏠 ダッシュボード</a>
+        </div>
+    </header>
+    
+    <!-- 3カラム構成のメインコンテナ -->
+    <div class="admin-three-column-container">
+        <!-- 左側：FAQサイドバー -->
+        <aside class="faq-sidebar">
+            <div class="sidebar-header">
+                <h2>📋 よくある質問</h2>
+                <div class="faq-search">
+                    <input type="text" id="faqSearch" placeholder="FAQ検索..." onkeyup="searchFAQ(this.value)">
+                </div>
+            </div>
+            <div class="faq-list" id="faqList">
+                {% if faqs and faqs|length > 0 %}
+                    {% for faq in faqs %}
+                    <div class="faq-item" 
+                         data-faq-id="{{ faq.id }}"
+                         data-category="{{ faq.category or '' }}"
+                         data-keywords="{{ faq.keywords or '' }}"
+                         data-search-text="{{ (faq.title + ' ' + faq.question + ' ' + faq.answer + ' ' + (faq.keywords or ''))|lower }}">
+                        <div class="faq-item-header">
+                            <div class="faq-title">{{ faq.title }}</div>
+                            {% if faq.category %}
+                            <div class="faq-category-badge">{{ faq.category }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="faq-preview">{{ faq.question[:80] }}...</div>
+                        {% if faq.view_count > 0 %}
+                        <div class="faq-stats">
+                            <small>閲覧数: {{ faq.view_count }}</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="no-faq-message" style="padding: 20px; text-align: center; color: #666;">
+                        FAQが見つかりません。<br>
+                        システム管理者にお問い合わせください。
+                    </div>
+                {% endif %}
+                
+                <!-- 検索結果がない場合のメッセージ -->
+                <div class="no-search-results" style="display: none; padding: 20px; text-align: center; color: #666;">
+                    <div>検索結果が見つかりません。</div>
+                    <small>別のキーワードで検索してみてください。</small>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- 中央：ユーザーリスト -->
+        <div class="user-list-column">
+            <div class="user-list-header">
+                <h3>👥 利用者一覧</h3>
+                <div class="user-search">
+                    <input type="text" id="userSearch" placeholder="ユーザー検索..." onkeyup="searchUsers(this.value)">
+                </div>
+            </div>
+            <div class="user-list-container" id="userList">
+                <div class="loading-message">ユーザー一覧を読み込み中...</div>
+            </div>
+        </div>
+        
+        <!-- 右側：チャットエリア -->
+        <div class="chat-area">
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <!-- デフォルトメッセージ -->
+                    <div class="welcome-message" id="welcomeMessage">
+                        <div class="welcome-content">
+                            <h3>👨‍💼 管理者チャットルーム</h3>
+                            <p>左側のユーザー一覧から利用者を選択してください。</p>
+                            <div class="welcome-stats">
+                                <span>選択した利用者とのチャット履歴が表示されます</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 入力エリア -->
+                <div class="chat-input-area" id="chatInputArea" style="display: none;">
+                    <div class="input-status">
+                        <div class="status-left">
+                            <span class="admin-badge">👨‍💼 管理者モード</span>
+                            <span class="status-text">回答を送信</span>
+                        </div>
+                        <span class="char-count">0/1000</span>
+                    </div>
+                    <div class="input-container">
+                        <textarea 
+                            id="messageInput" 
+                            placeholder="ここに回答を入力してください..." 
+                            maxlength="1000"
+                            rows="3"></textarea>
+                        <button type="button" id="sendButton" class="send-button" disabled style="display: flex; align-items: center; justify-content: center;">
+                            <img src="{{ url_for('static', filename='icon06.png') }}" alt="送信" style="width: 48px; height: 48px;" class="send-icon-enabled">
+                            <img src="{{ url_for('static', filename='icon07.png') }}" alt="送信不可" style="width: 48px; height: 48px; display: none;" class="send-icon-disabled">
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 設定パネル -->
+    <div class="settings-panel hidden" id="settingsPanel">
+        <div class="settings-header">
+            <h3>⚙️ 表示設定</h3>
+            <button type="button" class="close-settings" onclick="toggleSettings()">×</button>
+        </div>
+        <div class="settings-content">
+            <div class="setting-group">
+                <label for="fontSizeSlider">📝 フォントサイズ</label>
+                <div class="slider-container">
+                    <input type="range" id="fontSizeSlider" min="1" max="4" value="2" onchange="changeFontSize(this.value)">
+                    <span id="fontSizeLabel">標準</span>
+                </div>
+            </div>
+            <div class="setting-group">
+                <label for="highContrastMode">🎨 ハイコントラスト</label>
+                <input type="checkbox" id="highContrastMode" onchange="toggleHighContrast()">
+            </div>
+        </div>
+    </div>
+    
+    <!-- FAQモーダル -->
+    <div id="faqModal" class="modal hidden">
+        <div class="modal-content faq-modal-content">
+            <div class="modal-header">
+                <h3 id="faqModalTitle">FAQ詳細</h3>
+                <button type="button" class="modal-close" onclick="closeFaqModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="faq-detail-section">
+                    <h4>🤔 質問</h4>
+                    <div id="faqModalQuestion" class="faq-question-text"></div>
+                </div>
+                <div class="faq-detail-section">
+                    <h4>💡 回答</h4>
+                    <div id="faqModalAnswer" class="faq-answer-text"></div>
+                </div>
+                <div id="faqModalMeta" class="faq-meta-info">
+                    <div class="faq-category" id="faqModalCategory"></div>
+                    <div class="faq-keywords" id="faqModalKeywords"></div>
+                    <div class="faq-stats" id="faqModalStats"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeFaqModal()">閉じる</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 通知コンテナ -->
+    <div id="notifications" class="notifications-container"></div>
+    
+    
+    <script src="{{ url_for('static', filename='js/accessibility.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/faq-search.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/private-chat.js') }}?v={{ range(1000000) | random }}"></script>
+    <script>
+        // ユーザー情報をJavaScriptに渡す
+        window.currentUser = {
+            id: {{ current_user.id }},
+            display_name: "{{ current_user.display_name or current_user.identifier }}",
+            is_admin: {{ current_user.is_admin | tojson }},
+            user_type: "{{ current_user.user_type }}"
+        };
+        
+        window.targetUser = {
+            id: {{ target_user.id }},
+            display_name: "{{ target_user.display_name or target_user.identifier }}",
+            user_type: "{{ target_user.user_type }}"
+        };
+        
+        // 管理者モードフラグ
+        window.isAdminMode = true;
+        
+        // FAQデータをJavaScriptで使用できるようにする
+        window.faqData = [
+            {% if faqs %}
+                {% for faq in faqs %}
+                {
+                    id: {{ faq.id }},
+                    title: {{ faq.title|tojson }},
+                    question: {{ faq.question|tojson }},
+                    answer: {{ faq.answer|tojson }},
+                    keywords: {{ faq.keywords|tojson }},
+                    category: {{ faq.category|tojson }},
+                    is_active: {{ faq.is_active|tojson }},
+                    view_count: {{ faq.view_count }}
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            {% endif %}
+        ];
+        
+        // 管理者専用の設定
+        document.addEventListener('DOMContentLoaded', function() {
+            // 管理者向けの初期化処理
+            initAdminChatMode();
+            
+            // ユーザー一覧を取得
+            loadUserList();
+            
+            // FAQダブルクリックイベントを初期化
+            initializeFAQEvents();
+        });
+        
+        function initAdminChatMode() {
+            // 管理者向けのUI調整
+            const statusText = document.querySelector('.status-text');
+            if (statusText) {
+                statusText.textContent = '管理者として回答を送信できます';
+            }
+            
+            // 送信ボタンの表示を調整
+            updateSendButtonState();
+        }
+        
+        let currentSelectedUserId = null;
+        let allUsers = [];
+        
+        function loadUserList() {
+            fetch('/api/get_users')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.users) {
+                        allUsers = data.users;
+                        displayUserList(data.users);
+                    } else {
+                        displayNoUsers();
+                    }
+                })
+                .catch(error => {
+                    console.error('ユーザー一覧の取得に失敗:', error);
+                    displayError('ユーザー一覧の読み込みに失敗しました');
+                });
+        }
+        
+        function displayUserList(users) {
+            const userListContainer = document.getElementById('userList');
+            
+            if (users.length === 0) {
+                displayNoUsers();
+                return;
+            }
+            
+            const userListHTML = users.map(user => {
+                const avatar = user.user_type === 'staff' ? '👨‍💼' : '👤';
+                const userType = user.user_type === 'staff' ? '職員' : '利用者';
+                const department = user.department ? ` • ${user.department}` : '';
+                const messageCount = user.message_count || 0;
+                const lastActivity = user.last_activity ? formatDate(user.last_activity) : '未記録';
+                
+                return `
+                    <div class="user-item" data-user-id="${user.id}" onclick="selectUser(${user.id})">
+                        <div class="user-avatar">${avatar}</div>
+                        <div class="user-info">
+                            <div class="user-name">${user.display_name || user.identifier}</div>
+                            <div class="user-meta">
+                                <span>${userType}${department}</span>
+                                <span>最終: ${lastActivity}</span>
+                            </div>
+                        </div>
+                        ${messageCount > 0 ? `<div class="message-badge">${messageCount}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+            
+            userListContainer.innerHTML = userListHTML;
+        }
+        
+        function displayNoUsers() {
+            const userListContainer = document.getElementById('userList');
+            userListContainer.innerHTML = `
+                <div class="no-users-message">
+                    <h4>利用者が見つかりません</h4>
+                    <p>まだ利用者の登録がありません。</p>
+                </div>
+            `;
+        }
+        
+        function displayError(message) {
+            const userListContainer = document.getElementById('userList');
+            userListContainer.innerHTML = `
+                <div class="no-users-message">
+                    <h4>エラー</h4>
+                    <p>${message}</p>
+                    <button onclick="loadUserList()" class="btn btn-secondary">再読み込み</button>
+                </div>
+            `;
+        }
+        
+        function selectUser(userId) {
+            // 前の選択をクリア
+            document.querySelectorAll('.user-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // 新しい選択をハイライト
+            const selectedItem = document.querySelector(`[data-user-id="${userId}"]`);
+            if (selectedItem) {
+                selectedItem.classList.add('selected');
+            }
+            
+            currentSelectedUserId = userId;
+            
+            // 選択されたユーザーの情報を取得
+            const selectedUser = allUsers.find(user => user.id === userId);
+            if (selectedUser) {
+                loadUserMessages(selectedUser);
+                showChatInputArea(selectedUser);
+            }
+        }
+        
+        function loadUserMessages(user) {
+            // ウェルカムメッセージを更新
+            const welcomeMessage = document.getElementById('welcomeMessage');
+            welcomeMessage.innerHTML = `
+                <div class="welcome-content">
+                    <h3>💬 ${user.display_name || user.identifier} さんとのチャット</h3>
+                    <p>メッセージ履歴を読み込み中...</p>
+                </div>
+            `;
+            
+            // APIを通じてユーザーのメッセージを取得
+            fetch(`/api/get_messages?user_id=${user.id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.messages && data.messages.length > 0) {
+                        // ウェルカムメッセージを非表示
+                        welcomeMessage.style.display = 'none';
+                        
+                        // メッセージを表示
+                        displayMessages(data.messages);
+                    } else {
+                        // メッセージがない場合の表示
+                        welcomeMessage.innerHTML = `
+                            <div class="welcome-content">
+                                <h3>💬 ${user.display_name || user.identifier} さんとのチャット</h3>
+                                <p>まだメッセージ履歴がありません。</p>
+                                <div class="welcome-stats">
+                                    <span>新しい会話を開始してください</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('メッセージの取得に失敗:', error);
+                    welcomeMessage.innerHTML = `
+                        <div class="welcome-content">
+                            <h3>⚠️ エラー</h3>
+                            <p>メッセージの読み込みに失敗しました。</p>
+                            <button onclick="loadUserMessages(allUsers.find(u => u.id === ${user.id}))" class="btn btn-secondary">再読み込み</button>
+                        </div>
+                    `;
+                });
+        }
+        
+        function showChatInputArea(user) {
+            const chatInputArea = document.getElementById('chatInputArea');
+            const statusText = document.querySelector('.status-text');
+            
+            chatInputArea.style.display = 'block';
+            
+            if (statusText) {
+                statusText.textContent = `${user.display_name || user.identifier} さんに回答を送信`;
+            }
+            
+            // 現在のターゲットユーザーを更新
+            window.targetUser = {
+                id: user.id,
+                display_name: user.display_name || user.identifier,
+                user_type: user.user_type
+            };
+        }
+        
+        function searchUsers(searchTerm) {
+            if (!searchTerm.trim()) {
+                displayUserList(allUsers);
+                return;
+            }
+            
+            const filteredUsers = allUsers.filter(user => {
+                const name = (user.display_name || user.identifier).toLowerCase();
+                const department = (user.department || '').toLowerCase();
+                const search = searchTerm.toLowerCase();
+                
+                return name.includes(search) || department.includes(search);
+            });
+            
+            displayUserList(filteredUsers);
+        }
+        
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = now - date;
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            
+            if (days === 0) {
+                return '今日';
+            } else if (days === 1) {
+                return '昨日';
+            } else if (days < 7) {
+                return `${days}日前`;
+            } else {
+                return date.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
+            }
+        }
+        
+        // 管理者用メッセージ送信機能をオーバーライド
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message || isLoading || !currentSelectedUserId) {
+                if (!currentSelectedUserId) {
+                    showNotification('送信先のユーザーを選択してください', 'error');
+                }
+                return;
+            }
+            
+            if (message.length > 1000) {
+                showNotification('メッセージが長すぎます（1000文字以内）', 'error');
+                return;
+            }
+            
+            try {
+                isLoading = true;
+                updateSendButtonState(true);
+                
+                // 管理者としてメッセージを送信
+                const response = await fetch('/api/admin_send_message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        target_user_id: currentSelectedUserId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    messageInput.value = '';
+                    updateCharCount(0);
+                    adjustTextareaHeight(messageInput);
+                    
+                    // 送信したメッセージを即座に表示
+                    const staffMessage = {
+                        id: Date.now() + '_staff',
+                        message_type: 'staff',
+                        content: message,
+                        timestamp: new Date().toISOString(),
+                        staff_name: window.currentUser.display_name
+                    };
+                    addMessageToDisplay(staffMessage);
+                    
+                    showNotification('回答を送信しました', 'success');
+                } else {
+                    showNotification(data.error || '送信に失敗しました', 'error');
+                }
+            } catch (error) {
+                console.error('送信エラー:', error);
+                showNotification('送信でエラーが発生しました', 'error');
+            } finally {
+                isLoading = false;
+                updateSendButtonState(false);
+            }
+        }
+        
+        // 送信者情報を管理者向けに調整
+        function getSenderInfo(message) {
+            switch (message.message_type) {
+                case 'user':
+                    // 現在選択されているユーザーの情報を使用
+                    const selectedUser = allUsers.find(u => u.id === currentSelectedUserId);
+                    return {
+                        icon: selectedUser && selectedUser.user_type === 'staff' ? '👨‍💼' : '👤',
+                        name: selectedUser ? (selectedUser.display_name || selectedUser.identifier) : '利用者'
+                    };
+                case 'staff':
+                    return {
+                        icon: '👨‍💼',
+                        name: message.staff_name || 'サポートスタッフ'
+                    };
+                case 'bot':
+                    return {
+                        icon: '🤖',
+                        name: '自動回答システム'
+                    };
+                default:
+                    return {
+                        icon: '❓',
+                        name: '不明'
+                    };
+            }
+        }
+        
+        // 送信ボタンの状態とアイコンを更新する関数
+        function updateSendButtonState(loading = false) {
+            const sendButton = document.getElementById('sendButton');
+            const messageInput = document.getElementById('messageInput');
+            
+            if (!sendButton || !messageInput) return;
+            
+            const hasMessage = messageInput.value.trim().length > 0;
+            const isDisabled = loading || !hasMessage || !currentSelectedUserId;
+            
+            sendButton.disabled = isDisabled;
+            
+            // アイコンの表示切り替え
+            const enabledIcon = sendButton.querySelector('.send-icon-enabled');
+            const disabledIcon = sendButton.querySelector('.send-icon-disabled');
+            
+            if (enabledIcon && disabledIcon) {
+                if (isDisabled) {
+                    enabledIcon.style.display = 'none';
+                    disabledIcon.style.display = 'inline-block';
+                } else {
+                    enabledIcon.style.display = 'inline-block';
+                    disabledIcon.style.display = 'none';
+                }
+            }
+        }
+        
+        // メッセージ入力欄の変更を監視
+        document.addEventListener('DOMContentLoaded', function() {
+            const messageInput = document.getElementById('messageInput');
+            if (messageInput) {
+                messageInput.addEventListener('input', function() {
+                    updateSendButtonState();
+                });
+            }
+        });
+        
+        // FAQ関連の関数
+        function initializeFAQEvents() {
+            const faqItems = document.querySelectorAll('.faq-item');
+            faqItems.forEach(item => {
+                // ダブルクリックイベントを追加
+                item.addEventListener('dblclick', function(e) {
+                    e.preventDefault();
+                    const faqId = this.dataset.faqId;
+                    showFaqModal(faqId);
+                });
+                
+                // ダブルクリック時のCSSエフェクト
+                item.style.cursor = 'pointer';
+                item.title = 'ダブルクリックで詳細を表示';
+            });
+            
+            // モーダルの外側をクリックで閉じる
+            const modal = document.getElementById('faqModal');
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        closeFaqModal();
+                    }
+                });
+            }
+            
+            // Escキーで閉じる
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    const modal = document.getElementById('faqModal');
+                    if (modal && !modal.classList.contains('hidden')) {
+                        closeFaqModal();
+                    }
+                }
+            });
+        }
+        
+        function showFaqModal(faqId) {
+            const faq = window.faqData?.find(f => f.id == faqId);
+            if (!faq) {
+                console.error('FAQ not found:', faqId);
+                return;
+            }
+            
+            // モーダルの内容を更新
+            document.getElementById('faqModalTitle').textContent = faq.title;
+            document.getElementById('faqModalQuestion').textContent = faq.question;
+            document.getElementById('faqModalAnswer').innerHTML = faq.answer.replace(/\n/g, '<br>');
+            
+            // メタ情報を更新
+            const categoryElement = document.getElementById('faqModalCategory');
+            if (faq.category) {
+                categoryElement.textContent = faq.category;
+                categoryElement.style.display = 'inline-block';
+            } else {
+                categoryElement.style.display = 'none';
+            }
+            
+            const keywordsElement = document.getElementById('faqModalKeywords');
+            if (faq.keywords) {
+                keywordsElement.innerHTML = '<strong>キーワード:</strong> ' + faq.keywords;
+                keywordsElement.style.display = 'block';
+            } else {
+                keywordsElement.style.display = 'none';
+            }
+            
+            const statsElement = document.getElementById('faqModalStats');
+            statsElement.innerHTML = '閲覧数: ' + (faq.view_count || 0);
+            
+            // モーダルを表示
+            const modal = document.getElementById('faqModal');
+            modal.classList.remove('hidden');
+            modal.style.display = 'flex';
+            
+            // アニメーション用のクラス追加
+            setTimeout(() => {
+                modal.classList.add('show');
+            }, 10);
+            
+            // フォーカスをモーダル内に移動
+            const closeButton = modal.querySelector('.modal-close');
+            if (closeButton) {
+                closeButton.focus();
+            }
+            
+            // FAQ閲覧数をサーバーに送信（バックグラウンド）
+            updateFaqViewCount(faqId);
+        }
+        
+        function closeFaqModal() {
+            const modal = document.getElementById('faqModal');
+            if (modal) {
+                modal.classList.remove('show');
+                
+                // アニメーション完了後に非表示
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                    modal.classList.add('hidden');
+                }, 300);
+            }
+        }
+        
+        function updateFaqViewCount(faqId) {
+            // FAQ閲覧数を更新（非同期処理）
+            fetch(`/api/faq/${faqId}/view`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content')
+                }
+            }).catch(error => {
+                console.log('FAQ閲覧数の更新に失敗:', error);
+                // エラーは表示しない（バックグラウンド処理のため）
+            });
+        }
+    </script>
+</body>
+</html>

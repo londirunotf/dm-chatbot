@@ -1,0 +1,196 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="escalation-management">
+    <div class="page-header">
+        <h2>エスカレーション管理</h2>
+        <div class="escalation-stats">
+            <span class="pending-count">{{ escalations|length }} 件の未解決質問</span>
+        </div>
+    </div>
+    
+    {% if escalations %}
+        <div class="escalation-list">
+            {% for escalation in escalations %}
+            <div class="escalation-card" data-escalation-id="{{ escalation.id }}">
+                <div class="escalation-header">
+                    <div class="escalation-meta">
+                        <span class="escalation-date">{{ escalation.created_at.strftime('%Y/%m/%d %H:%M') }}</span>
+                        <span class="status-badge pending">未解決</span>
+                    </div>
+                    <div class="escalation-user">
+                        {% if escalation.message.conversation.user %}
+                            <div class="user-info">
+                                <span class="user-icon">
+                                    {% if escalation.message.conversation.user.user_type == 'staff' %}
+                                        👨‍💼
+                                    {% elif escalation.message.conversation.user.is_anonymous %}
+                                        👤
+                                    {% else %}
+                                        👥
+                                    {% endif %}
+                                </span>
+                                <span class="user-name">
+                                    {{ escalation.message.conversation.user.display_name or escalation.message.conversation.user.identifier }}
+                                </span>
+                                {% if escalation.message.conversation.user.department %}
+                                <span class="user-department">({{ escalation.message.conversation.user.department }})</span>
+                                {% endif %}
+                            </div>
+                        {% elif escalation.message.conversation.user_display_name %}
+                            <div class="user-info">
+                                <span class="user-icon">👤</span>
+                                <span class="user-name">{{ escalation.message.conversation.user_display_name }}</span>
+                                <span class="user-type">(匿名ユーザー)</span>
+                            </div>
+                        {% else %}
+                            <div class="user-info">
+                                <span class="user-icon">❓</span>
+                                <span class="user-name">不明なユーザー</span>
+                                <span class="user-type">(匿名)</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="escalation-content">
+                    <div class="original-question">
+                        <h4>質問内容</h4>
+                        <p>{{ escalation.message.content }}</p>
+                        {% if escalation.message.file_name %}
+                        <div class="attachment">
+                            📎 添付ファイル: {{ escalation.message.file_name }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="response-section">
+                        <h4>職員回答</h4>
+                        <form class="response-form" data-escalation-id="{{ escalation.id }}">
+                            <textarea 
+                                name="staff_response" 
+                                placeholder="利用者への回答を入力してください..."
+                                rows="4"
+                                required>{{ escalation.staff_response or '' }}</textarea>
+                            
+                            <div class="response-meta">
+                                <input 
+                                    type="text" 
+                                    name="staff_name" 
+                                    placeholder="対応者名（任意）"
+                                    value="{{ escalation.staff_name or '' }}">
+                            </div>
+                            
+                            <div class="response-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    回答を送信
+                                </button>
+                                <button type="button" class="btn btn-secondary close-escalation-btn" data-escalation-id="{{ escalation.id }}">
+                                    クローズ
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-escalations">
+            <div class="no-data-message">
+                <h3>🎉 素晴らしい！</h3>
+                <p>現在、未解決の質問はありません。</p>
+                <p>新しい質問が来たときにここに表示されます。</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// エスカレーション管理JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
+    
+    // 回答フォーム送信
+    document.querySelectorAll('.response-form').forEach(form => {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const escalationId = this.dataset.escalationId;
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+            
+            try {
+                const response = await fetch(`/admin/escalation/${escalationId}/respond`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showMessage('回答を送信しました', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showMessage(result.error || 'エラーが発生しました', 'error');
+                }
+            } catch (error) {
+                console.error('送信エラー:', error);
+                showMessage('通信エラーが発生しました', 'error');
+            }
+        });
+    });
+    
+    // クローズボタン
+    document.querySelectorAll('.close-escalation-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            if (!confirm('この質問をクローズしますか？')) return;
+            
+            const escalationId = this.dataset.escalationId;
+            
+            try {
+                const response = await fetch(`/admin/escalation/${escalationId}/close`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showMessage('質問をクローズしました', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showMessage(result.error || 'エラーが発生しました', 'error');
+                }
+            } catch (error) {
+                console.error('クローズエラー:', error);
+                showMessage('通信エラーが発生しました', 'error');
+            }
+        });
+    });
+    
+    function showMessage(message, type) {
+        const existingMessages = document.querySelectorAll('.temp-flash-message');
+        existingMessages.forEach(msg => msg.remove());
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `flash-message flash-${type} temp-flash-message`;
+        messageDiv.textContent = message;
+        
+        const adminMain = document.querySelector('.admin-main');
+        adminMain.insertBefore(messageDiv, adminMain.firstChild);
+        
+        setTimeout(() => messageDiv.remove(), 5000);
+    }
+});
+</script>
+{% endblock %}

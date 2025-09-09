@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>プライベートチャット - {{ user.display_name or user.user_id }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/private-chat.css') }}">
+</head>
+<body>
+    <!-- ヘッダー -->
+    <header class="chat-header">
+        <div class="header-content">
+            <div class="user-info">
+                <div class="user-avatar">
+                    {% if user.user_type == 'staff' %}
+                        <div class="avatar-icon staff-avatar"></div>
+                    {% else %}
+                        <div class="avatar-icon user-avatar"></div>
+                    {% endif %}
+                </div>
+                <div class="user-details">
+                    <h1 class="user-name">{{ user.display_name or user.user_id }}</h1>
+                    <p class="user-status">
+                        {% if user.department %}
+                            {{ user.department }} | 
+                        {% endif %}
+                        プライベートチャット
+                    </p>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <button class="header-btn settings-btn" onclick="toggleSettings()" title="設定">
+                    <img src="{{ url_for('static', filename='icon05.png') }}" alt="設定" style="width: 30px; height: 30px;">
+                </button>
+                <a href="{{ url_for('auth.logout') }}" class="header-btn logout-btn" title="ログアウト">
+                    <img src="{{ url_for('static', filename='icon04.png') }}" alt="ログアウト" style="width: 30px; height: 30px;">
+                </a>
+            </div>
+        </div>
+    </header>
+    
+    <!-- 設定パネル -->
+    <div id="settingsPanel" class="settings-panel hidden">
+        <div class="settings-content">
+            <h3><div class="settings-title-icon"></div> 設定</h3>
+            
+            <!-- アクセシビリティ設定 -->
+            <div class="setting-group">
+                <h4><div class="display-icon"></div> 表示設定</h4>
+                <div class="setting-item">
+                    <label for="fontSizeSlider">フォントサイズ</label>
+                    <input type="range" id="fontSizeSlider" min="1" max="4" value="2" 
+                           onchange="changeFontSize(this.value)">
+                    <span id="fontSizeLabel">標準</span>
+                </div>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="highContrastMode" onchange="toggleHighContrast()">
+                        ハイコントラストモード
+                    </label>
+                </div>
+            </div>
+            
+            <!-- アカウント設定 -->
+            <div class="setting-group">
+                <h4><div class="account-icon"></div> アカウント</h4>
+                <div class="setting-item">
+                    <a href="{{ url_for('auth.change_password') }}" class="settings-link">
+                        パスワード変更
+                    </a>
+                </div>
+            </div>
+            
+            <div class="settings-actions">
+                <button class="btn-secondary" onclick="toggleSettings()">閉じる</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- メインコンテンツ -->
+    <div class="main-container">
+        <!-- サイドバー: FAQ一覧 -->
+        <aside class="faq-sidebar">
+            <div class="sidebar-header">
+                <h2><div class="faq-header-icon"></div> よくある質問</h2>
+                <div class="faq-search">
+                    <input type="text" id="faqSearch" placeholder="FAQ検索..." 
+                           onkeyup="searchFAQ(this.value)">
+                </div>
+            </div>
+
+            
+            <div class="faq-list" id="faqList">
+                {% if faqs and faqs|length > 0 %}
+                    {% for faq in faqs %}
+                    <div class="faq-item" 
+                         data-faq-id="{{ faq.id }}"
+                         data-category="{{ faq.category or '' }}"
+                         data-keywords="{{ faq.keywords or '' }}"
+                         data-search-text="{{ (faq.title + ' ' + faq.question + ' ' + faq.answer + ' ' + (faq.keywords or ''))|lower }}">
+                        <div class="faq-item-header">
+                            <div class="faq-title">{{ faq.title }}</div>
+                            {% if faq.category %}
+                            <div class="faq-category-badge">{{ faq.category }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="faq-preview">{{ faq.question[:80] }}...</div>
+                        {% if faq.view_count > 0 %}
+                        <div class="faq-stats">
+                            <small>閲覧数: {{ faq.view_count }}</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="no-faq-message" style="padding: 20px; text-align: center; color: #666;">
+                        FAQが見つかりません。<br>
+                        システム管理者にお問い合わせください。
+                    </div>
+                {% endif %}
+            </div>
+        </aside>
+        
+        <!-- チャットエリア -->
+        <main class="chat-area">
+            <div class="chat-container">
+                <!-- チャットメッセージ -->
+                <div class="chat-messages" id="chatMessages">
+                    <div class="welcome-message">
+                        <div class="welcome-content">
+                            <h3><div class="welcome-icon"></div> こんにちは、{{ user.display_name or user.user_id }}さん！</h3>
+                            <p>これはあなた専用のプライベートチャットルームです。</p>
+                            <p>質問や困ったことがあれば、お気軽にお声かけください。</p>
+                            <div class="welcome-features">
+                                <div class="feature-item">
+                                    <span class="feature-icon private-icon"></span>
+                                    <span>完全プライベート</span>
+                                </div>
+                                <div class="feature-item">
+                                    <span class="feature-icon speed-icon"></span>
+                                    <span>即座に回答</span>
+                                </div>
+                                <div class="feature-item">
+                                    <span class="feature-icon search-icon"></span>
+                                    <span>FAQ検索可能</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- よくある質問クイックアクセス -->
+                <div class="quick-faq-access" id="quickFaqAccess">
+                    <div class="quick-faq-title">💡 よくある質問</div>
+                    <div class="quick-faq-buttons" id="quickFaqButtons">
+                        <button type="button" class="quick-faq-btn" data-search="送信権限">
+                            🔐 送信権限について
+                        </button>
+                        <button type="button" class="quick-faq-btn" data-search="エラー">
+                            ⚠️ エラーが発生したら
+                        </button>
+                        <button type="button" class="quick-faq-btn" data-search="ログイン">
+                            🔑 ログインできない
+                        </button>
+                        <button type="button" class="quick-faq-btn" data-search="ファイル">
+                            📁 ファイルについて
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 入力エリア -->
+                <div class="chat-input-area">
+                    <div class="input-toolbar">
+                        <button class="toolbar-btn" onclick="insertQuickText('お疲れ様です。')" title="挨拶を挿入">
+                            <div class="toolbar-icon greeting-icon"></div>
+                        </button>
+                        <button class="toolbar-btn" onclick="insertQuickText('質問があります。')" title="質問を挿入">
+                            <div class="toolbar-icon question-icon"></div>
+                        </button>
+                        <button class="toolbar-btn" onclick="insertQuickText('ありがとうございます。')" title="感謝を挿入">
+                            <div class="toolbar-icon thanks-icon"></div>
+                        </button>
+                        <div class="toolbar-separator"></div>
+                        <label class="file-upload-btn" for="fileInput" title="ファイルを添付">
+                            <div class="toolbar-icon attachment-icon"></div>
+                            <input type="file" id="fileInput" style="display: none;" 
+                                   onchange="handleFileUpload(this)">
+                        </label>
+                    </div>
+                    
+                    <div class="input-container">
+                        <textarea id="messageInput" 
+                                  placeholder="メッセージを入力してください..."
+                                  rows="3"
+                                  onkeydown="handleKeyDown(event)"
+                                  oninput="adjustTextareaHeight(this)"></textarea>
+                        <button id="sendButton" onclick="sendMessage()" title="送信 (Ctrl+Enter)" style="display: flex; align-items: center; justify-content: center;">
+                            <img src="{{ url_for('static', filename='icon06.png') }}" alt="送信" style="width: 48px; height: 48px;" class="send-icon-enabled">
+                            <img src="{{ url_for('static', filename='icon07.png') }}" alt="送信不可" style="width: 48px; height: 48px; display: none;" class="send-icon-disabled">
+                        </button>
+                    </div>
+                    
+                    <div class="input-status" id="inputStatus">
+                        <span class="status-text"></span>
+                        <span class="char-count">0/1000</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- システム通知エリア -->
+    <div id="notifications" class="notifications-container"></div>
+    
+    <!-- FAQモーダル -->
+    <div id="faqModal" class="modal hidden">
+        <div class="modal-content faq-modal-content">
+            <div class="modal-header">
+                <h3 id="faqModalTitle">FAQ詳細</h3>
+                <button type="button" class="modal-close" onclick="closeFaqModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="faq-detail-section">
+                    <h4>🤔 質問</h4>
+                    <div id="faqModalQuestion" class="faq-question-text"></div>
+                </div>
+                <div class="faq-detail-section">
+                    <h4>💡 回答</h4>
+                    <div id="faqModalAnswer" class="faq-answer-text"></div>
+                </div>
+                <div id="faqModalMeta" class="faq-meta-info">
+                    <div class="faq-category" id="faqModalCategory"></div>
+                    <div class="faq-keywords" id="faqModalKeywords"></div>
+                    <div class="faq-stats" id="faqModalStats"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeFaqModal()">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 確認ダイアログ -->
+    <div id="confirmDialog" class="modal hidden">
+        <div class="modal-content">
+            <h3 id="confirmTitle">確認</h3>
+            <p id="confirmMessage">この操作を実行しますか？</p>
+            <div class="modal-actions">
+                <button class="btn-primary" id="confirmYes">はい</button>
+                <button class="btn-secondary" id="confirmNo">いいえ</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/accessibility.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/faq-search.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/private-chat.js') }}?v={{ range(1000000) | random }}"></script>
+    <script>
+        // ユーザー情報をJavaScriptに渡す
+        window.currentUser = {
+            id: {{ user.id }},
+            user_id: '{{ user.user_id }}',
+            display_name: '{{ user.display_name or user.user_id }}',
+            is_admin: {{ user.is_admin | tojson }},
+            department: '{{ user.department or '' }}'
+        };
+
+        // FAQデータをJavaScriptで使用できるようにする
+        window.faqData = [
+            {% for faq in faqs %}
+            {
+                id: {{ faq.id }},
+                title: {{ faq.title|tojson }},
+                question: {{ faq.question|tojson }},
+                answer: {{ faq.answer|tojson }},
+                keywords: {{ faq.keywords|tojson }},
+                category: {{ faq.category|tojson }},
+                is_active: {{ faq.is_active|tojson }},
+                view_count: {{ faq.view_count }}
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+        // FAQ関連関数の統一された実装（管理者画面からの移植）
+        function showFaqModal(faqId) {
+            const faq = window.faqData?.find(f => f.id == faqId);
+            if (!faq) {
+                console.error('FAQ not found:', faqId);
+                return;
+            }
+            
+            // モーダルの内容を更新
+            document.getElementById('faqModalTitle').textContent = faq.title;
+            document.getElementById('faqModalQuestion').textContent = faq.question;
+            document.getElementById('faqModalAnswer').innerHTML = faq.answer.replace(/\n/g, '<br>');
+            
+            // メタ情報を更新
+            const categoryElement = document.getElementById('faqModalCategory');
+            if (faq.category) {
+                categoryElement.textContent = faq.category;
+                categoryElement.style.display = 'inline-block';
+            } else {
+                categoryElement.style.display = 'none';
+            }
+            
+            const keywordsElement = document.getElementById('faqModalKeywords');
+            if (faq.keywords) {
+                keywordsElement.innerHTML = '<strong>キーワード:</strong> ' + faq.keywords;
+                keywordsElement.style.display = 'block';
+            } else {
+                keywordsElement.style.display = 'none';
+            }
+            
+            const statsElement = document.getElementById('faqModalStats');
+            statsElement.innerHTML = '閲覧数: ' + (faq.view_count || 0);
+            
+            // モーダルを表示
+            const modal = document.getElementById('faqModal');
+            modal.classList.remove('hidden');
+            modal.style.display = 'flex';
+            
+            // アニメーション用のクラス追加
+            setTimeout(() => {
+                modal.classList.add('show');
+            }, 10);
+            
+            // フォーカスをモーダル内に移動
+            const closeButton = modal.querySelector('.modal-close');
+            if (closeButton) {
+                closeButton.focus();
+            }
+            
+            // FAQ閲覧数をサーバーに送信（バックグラウンド）
+            updateFaqViewCount(faqId);
+        }
+        
+        function closeFaqModal() {
+            const modal = document.getElementById('faqModal');
+            if (modal) {
+                modal.classList.remove('show');
+                
+                // アニメーション完了後に非表示
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                    modal.classList.add('hidden');
+                }, 300);
+            }
+        }
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadChatMessages();
+            initializeAccessibility();
+            
+            // FAQ項目のダブルクリックイベントを設定
+            initializeFAQEvents();
+            
+            // 5秒ごとにメッセージを自動更新
+            setInterval(loadChatMessages, 5000);
+        });
+        
+        function initializeFAQEvents() {
+            const faqItems = document.querySelectorAll('.faq-item');
+            faqItems.forEach(item => {
+                // ダブルクリックイベントを追加
+                item.addEventListener('dblclick', function(e) {
+                    e.preventDefault();
+                    const faqId = this.dataset.faqId;
+                    showFaqModal(faqId);
+                });
+                
+                // ダブルクリック時のCSSエフェクト
+                item.style.cursor = 'pointer';
+                item.title = 'ダブルクリックで詳細を表示';
+            });
+            
+            // モーダルの外側をクリックで閉じる
+            const modal = document.getElementById('faqModal');
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        closeFaqModal();
+                    }
+                });
+            }
+            
+            // Escキーで閉じる
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    const modal = document.getElementById('faqModal');
+                    if (modal && !modal.classList.contains('hidden')) {
+                        closeFaqModal();
+                    }
+                }
+            });
+        }
+        
+        // FAQアイテムのCSSを設定（管理者画面と同様のスタイル）
+        const style = document.createElement('style');
+        style.textContent = `
+            .faq-item {
+                cursor: pointer !important;
+                user-select: none !important;
+                -webkit-user-select: none !important;
+                -moz-user-select: none !important;
+                -ms-user-select: none !important;
+            }
+            .faq-item:hover {
+                background-color: #f0f8ff !important;
+                transform: translateY(-1px);
+                box-shadow: 0 2px 8px rgba(0,191,165,0.15);
+                transition: all 0.2s;
+            }
+            
+            /* モーダルスタイル（管理者画面と統一） */
+            .modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+                display: none;
+                z-index: 1000;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            
+            .modal.show {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                opacity: 1;
+            }
+            
+            .faq-modal-content {
+                background: white;
+                border-radius: 12px;
+                max-width: 600px;
+                width: 90%;
+                max-height: 80vh;
+                overflow-y: auto;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                transform: scale(0.9);
+                transition: transform 0.3s ease;
+            }
+            
+            .modal.show .faq-modal-content {
+                transform: scale(1);
+            }
+            
+            .modal-header {
+                padding: 20px 25px 15px;
+                border-bottom: 1px solid #e0e0e0;
+                background: linear-gradient(135deg, #00BFA5, #00897B);
+                color: white;
+                border-radius: 12px 12px 0 0;
+                position: relative;
+            }
+            
+            .modal-header h3 {
+                margin: 0;
+                font-size: 18px;
+                font-weight: 600;
+                padding-right: 60px;
+            }
+            
+            .modal-close {
+                background: rgba(255, 255, 255, 0.9);
+                border: 2px solid rgba(255, 255, 255, 0.95);
+                font-size: 18px;
+                color: #00695C;
+                cursor: pointer;
+                padding: 0;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                font-weight: bold;
+                position: absolute;
+                top: -20px;
+                right: -20px;
+                z-index: 1001;
+                overflow: hidden;
+            }
+            
+            .modal-close::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+                transform: translateX(-100%);
+                transition: transform 0.6s;
+            }
+            
+            .modal-close:hover {
+                background: #ffffff;
+                border-color: #00BFA5;
+                color: #00695C;
+                transform: scale(1.1) rotate(90deg);
+                box-shadow: 0 6px 20px rgba(0, 191, 165, 0.4);
+            }
+            
+            .modal-close:hover::before {
+                transform: translateX(100%);
+            }
+            
+            .modal-close:active {
+                transform: scale(0.95) rotate(90deg);
+            }
+        `;
+        document.head.appendChild(style);
+        
+        function updateFaqViewCount(faqId) {
+            // FAQ閲覧数を更新（非同期処理）
+            fetch(`/api/faq/${faqId}/view`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content')
+                }
+            }).catch(error => {
+                console.log('FAQ閲覧数の更新に失敗:', error);
+                // エラーは表示しない（バックグラウンド処理のため）
+            });
+        }
+    </script>
+</body>
+</html>

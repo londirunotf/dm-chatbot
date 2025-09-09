@@ -1,0 +1,30 @@
+/* ユーザー管理アイコン専用CSS - 最優先 */
+.admin-nav-link span[style*="background: linear-gradient(135deg, #00BFA5, #00897B)"] {
+    position: relative !important;
+}
+
+.admin-nav-link span[style*="background: linear-gradient(135deg, #00BFA5, #00897B)"]:before {
+    content: '' !important;
+    position: absolute !important;
+    top: 3px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 6px !important;
+    height: 6px !important;
+    background: white !important;
+    border-radius: 50% !important;
+    z-index: 10 !important;
+}
+
+.admin-nav-link span[style*="background: linear-gradient(135deg, #00BFA5, #00897B)"]:after {
+    content: '' !important;
+    position: absolute !important;
+    bottom: 2px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 12px !important;
+    height: 8px !important;
+    background: white !important;
+    border-radius: 8px 8px 0 0 !important;
+    z-index: 10 !important;
+}

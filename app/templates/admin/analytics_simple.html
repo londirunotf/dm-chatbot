@@ -1,0 +1,133 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="analytics-dashboard">
+    <div class="dashboard-header">
+        <div class="header-content">
+            <h2>📈 分析・統計 (テスト版)</h2>
+            <div class="dashboard-time">
+                <span id="lastUpdated">最終更新: 読み込み中...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 基本統計表示のテスト -->
+    <div class="analytics-stats">
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-number">{{ user_stats.total_users or 0 }}</div>
+                <div class="stat-label">総ユーザー数</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-number">{{ staff_stats.total_staff or 0 }}</div>
+                <div class="stat-label">総職員数</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-number">{{ faq_stats.total_faqs or 0 }}</div>
+                <div class="stat-label">総FAQ数</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-number">{{ daily_conversations|length or 0 }}</div>
+                <div class="stat-label">会話データ数</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-number">{{ daily_escalations|length or 0 }}</div>
+                <div class="stat-label">エスカレーションデータ数</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-number">{{ popular_faqs|length or 0 }}</div>
+                <div class="stat-label">人気FAQ数</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- デバッグ情報 -->
+    <div class="debug-info" style="background: #f8f9fa; padding: 20px; margin-top: 20px; border-radius: 8px;">
+        <h3>デバッグ情報</h3>
+        <pre style="background: white; padding: 15px; border-radius: 4px; overflow: auto;">
+User Stats: {{ user_stats }}
+
+Staff Stats: {{ staff_stats }}
+
+FAQ Stats: {{ faq_stats }}
+
+Daily Conversations: {{ daily_conversations|length }} items
+Daily Escalations: {{ daily_escalations|length }} items
+Popular FAQs: {{ popular_faqs|length }} items
+        </pre>
+    </div>
+
+    <!-- 基本チャートテスト -->
+    <div class="chart-section" style="background: white; padding: 20px; margin-top: 20px; border-radius: 8px;">
+        <h3>基本グラフテスト</h3>
+        <div class="chart-container" style="height: 300px;">
+            <canvas id="testChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        // 基本チャートのテスト
+        const ctx = document.getElementById('testChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['ユーザー', '職員', 'FAQ', '会話', 'エスカレーション'],
+                datasets: [{
+                    label: 'データ数',
+                    data: [
+                        {{ user_stats.total_users or 0 }},
+                        {{ staff_stats.total_staff or 0 }},
+                        {{ faq_stats.total_faqs or 0 }},
+                        {{ daily_conversations|length or 0 }},
+                        {{ daily_escalations|length or 0 }}
+                    ],
+                    backgroundColor: ['#00BFA5', '#26C6DA', '#42A5F5', '#66BB6A', '#FFCA28'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // 最終更新時刻を設定
+        document.getElementById('lastUpdated').textContent = 
+            '最終更新: ' + new Date().toLocaleString('ja-JP');
+            
+        console.log('Analytics test page loaded successfully');
+    } catch (error) {
+        console.error('Chart initialization error:', error);
+        document.getElementById('lastUpdated').textContent = 'エラー: ' + error.message;
+    }
+});
+</script>
+{% endblock %}

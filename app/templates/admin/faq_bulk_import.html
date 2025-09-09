@@ -1,0 +1,822 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="simple-import-container">
+    <!-- ヘッダー -->
+    <div class="page-header">
+        <h1>📥 FAQをまとめて追加</h1>
+        <a href="{{ url_for('admin.faq_list') }}" class="btn-back">← 戻る</a>
+    </div>
+
+    <!-- メイン操作エリア -->
+    <div class="main-content">
+        <!-- 左側: 簡単説明 -->
+        <div class="explain-section">
+            <h2>📝 使い方</h2>
+            <div class="simple-steps">
+                <div class="step">1. Excelファイルを準備</div>
+                <div class="step">2. ファイルを選択</div>
+                <div class="step">3. アップロード</div>
+            </div>
+            <div class="format-note">
+                <strong>対応形式:</strong> Excel (.xlsx) または CSV (.csv)
+            </div>
+        </div>
+
+        <!-- 右側: アップロードエリア -->
+        <div class="upload-section">
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="file-drop-zone" id="dropZone">
+                    <div class="drop-content">
+                        <div class="upload-icon">📁</div>
+                        <h3>ファイルを選択してください</h3>
+                        <button type="button" class="btn-choose-file" onclick="document.getElementById('fileInput').click()">
+                            📂 ファイルを選ぶ
+                        </button>
+                        <input type="file" id="fileInput" name="file" accept=".xlsx,.xls,.csv" style="display: none;">
+                        <p class="drop-hint">または、ここにドラッグ&ドロップ</p>
+                    </div>
+                    
+                    <div class="selected-file" id="selectedFile" style="display: none;">
+                        <div class="file-info">
+                            <span class="file-icon">📄</span>
+                            <span class="file-name" id="fileName"></span>
+                            <button type="button" class="btn-remove" onclick="removeFile()">✕</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-upload" id="uploadBtn" disabled>
+                    ⬆️ アップロード
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ファイル作成ガイド -->
+    <div class="guide-section">
+        <h2>📊 ファイル作成方法</h2>
+        
+        <div class="guide-tabs">
+            <button class="guide-tab active" data-guide="excel">Excel</button>
+            <button class="guide-tab" data-guide="csv">CSV</button>
+        </div>
+        
+        <!-- Excel作成ガイド -->
+        <div id="excel-guide" class="guide-content active">
+            <div class="quick-guide">
+                <h3>1. Excelで以下の項目を入力</h3>
+                <div class="column-guide">
+                    <table class="simple-table">
+                        <thead>
+                            <tr>
+                                <th class="required">title<br><small>タイトル</small></th>
+                                <th class="required">question<br><small>質問</small></th>
+                                <th class="required">answer<br><small>回答</small></th>
+                                <th class="optional">category<br><small>カテゴリ</small></th>
+                                <th class="optional">keywords<br><small>キーワード</small></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>パスワード忘れ</td>
+                                <td>パスワードを忘れました</td>
+                                <td>管理者にご連絡ください</td>
+                                <td>基本操作</td>
+                                <td>パスワード,忘れた</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="field-note">
+                    <span class="required-note">赤色は必須</span>
+                    <span class="optional-note">青色は任意</span>
+                </div>
+                
+                <h3>2. .xlsx形式で保存</h3>
+                <p>「ファイル」→「名前を付けて保存」→「Excel (.xlsx)」</p>
+            </div>
+        </div>
+        
+        <!-- CSV作成ガイド -->
+        <div id="csv-guide" class="guide-content">
+            <div class="quick-guide">
+                <h3>1. 以下の形式で入力</h3>
+                <div class="csv-example">
+                    <code>title,question,answer,category,keywords<br>
+パスワード忘れ,パスワードを忘れました,管理者にご連絡ください,基本操作,パスワード・忘れた</code>
+                </div>
+                
+                <h3>2. .csv形式で保存</h3>
+                <p>メモ帳やExcelで「CSV形式」を選択して保存</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- サンプルダウンロード -->
+    <div class="sample-section">
+        <h2>📥 サンプルファイル</h2>
+        <p>参考にしてください</p>
+        <div class="sample-buttons">
+            <button class="btn-sample" onclick="downloadExcelSample()">📊 Excelサンプル</button>
+            <button class="btn-sample" onclick="downloadCSVSample()">📋 CSVサンプル</button>
+        </div>
+    </div>
+
+    <!-- 処理状況 -->
+    <div id="uploadStatus" class="status-section" style="display: none;">
+        <div class="status-content" id="statusContent">
+            <!-- 動的に更新 -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+/* シンプルデザイン */
+.simple-import-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: "Hiragino Kaku Gothic Pro", sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+/* ヘッダー */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.page-header h1 {
+    color: #2c3e50;
+    margin: 0;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.btn-back {
+    background: #6c757d;
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.btn-back:hover {
+    background: #5a6268;
+    text-decoration: none;
+    color: white;
+}
+
+/* メインコンテンツ */
+.main-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-bottom: 40px;
+}
+
+/* 左側: 説明エリア */
+.explain-section {
+    background: #e8f4fd;
+    padding: 30px;
+    border-radius: 10px;
+    border-left: 5px solid #007bff;
+}
+
+.explain-section h2 {
+    color: #004085;
+    margin: 0 0 20px 0;
+    font-size: 20px;
+}
+
+.simple-steps {
+    margin-bottom: 20px;
+}
+
+.step {
+    background: white;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 8px;
+    font-weight: bold;
+    color: #495057;
+    border-left: 4px solid #28a745;
+}
+
+.format-note {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    font-size: 14px;
+    color: #6c757d;
+}
+
+/* 右側: アップロードエリア */
+.upload-section {
+    background: #f8f9fa;
+    padding: 30px;
+    border-radius: 10px;
+    border: 2px dashed #dee2e6;
+}
+
+.file-drop-zone {
+    text-align: center;
+    padding: 40px 20px;
+    background: white;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.file-drop-zone.drag-over {
+    background: #e3f2fd;
+    border-color: #007bff;
+}
+
+.upload-icon {
+    font-size: 60px;
+    color: #6c757d;
+    margin-bottom: 15px;
+}
+
+.drop-content h3 {
+    color: #495057;
+    margin: 0 0 20px 0;
+    font-size: 18px;
+}
+
+.btn-choose-file {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.btn-choose-file:hover {
+    background: #0056b3;
+}
+
+.drop-hint {
+    color: #6c757d;
+    font-size: 14px;
+    margin: 0;
+}
+
+.selected-file {
+    background: #d4edda;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #28a745;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.file-icon {
+    font-size: 20px;
+}
+
+.file-name {
+    flex: 1;
+    color: #155724;
+    font-weight: bold;
+}
+
+.btn-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: #dc3545;
+}
+
+.btn-upload {
+    width: 100%;
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.btn-upload:hover:not(:disabled) {
+    background: #218838;
+}
+
+.btn-upload:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+/* ガイドセクション */
+.guide-section {
+    background: #f1f3f4;
+    padding: 30px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+}
+
+.guide-section h2 {
+    color: #2c3e50;
+    margin: 0 0 20px 0;
+    font-size: 20px;
+    text-align: center;
+}
+
+/* シンプルタブ */
+.guide-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    justify-content: center;
+}
+
+.guide-tab {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.guide-tab:hover {
+    background: #5a6268;
+}
+
+.guide-tab.active {
+    background: #007bff;
+}
+
+/* ガイドコンテンツ */
+.guide-content {
+    display: none;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.guide-content.active {
+    display: block;
+}
+
+.quick-guide h3 {
+    color: #495057;
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.quick-guide p {
+    margin: 10px 0;
+    color: #6c757d;
+    font-size: 14px;
+}
+
+/* シンプルテーブル */
+.column-guide {
+    margin-bottom: 20px;
+}
+
+.simple-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.simple-table th,
+.simple-table td {
+    padding: 10px;
+    border: 1px solid #dee2e6;
+    text-align: left;
+}
+
+.simple-table th {
+    background: #f8f9fa;
+    font-weight: bold;
+}
+
+.simple-table th.required {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.simple-table th.optional {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.simple-table small {
+    display: block;
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.field-note {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin: 15px 0;
+    font-size: 14px;
+}
+
+.required-note {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.optional-note {
+    color: #007bff;
+    font-weight: bold;
+}
+
+/* CSV例 */
+.csv-example {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin: 15px 0;
+    border: 1px solid #dee2e6;
+}
+
+.csv-example code {
+    font-family: monospace;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #495057;
+}
+
+/* サンプルセクション */
+.sample-section {
+    background: #fff3cd;
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 4px solid #ffc107;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.sample-section h2 {
+    color: #856404;
+    margin: 0 0 10px 0;
+    font-size: 18px;
+}
+
+.sample-section p {
+    color: #856404;
+    margin: 0 0 15px 0;
+    font-size: 14px;
+}
+
+.sample-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.btn-sample {
+    background: #ffc107;
+    color: #212529;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.btn-sample:hover {
+    background: #e0a800;
+}
+
+/* ステータス表示 */
+.status-section {
+    background: #f5f5f5;
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+    border-left: 4px solid #007bff;
+}
+
+.status-content {
+    font-size: 16px;
+}
+
+.loading {
+    text-align: center;
+    color: #007bff;
+    font-size: 18px;
+}
+
+.success {
+    background: #d4edda;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #28a745;
+}
+
+.success h4 {
+    color: #155724;
+    margin: 0 0 10px 0;
+}
+
+.error {
+    background: #f8d7da;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #dc3545;
+}
+
+.error h4 {
+    color: #721c24;
+    margin: 0 0 10px 0;
+}
+
+.warning {
+    background: #fff3cd;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #ffc107;
+    margin-top: 15px;
+}
+
+.warning h4 {
+    color: #856404;
+    margin: 0 0 10px 0;
+}
+
+.actions {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.actions .btn {
+    background: #28a745;
+    color: white;
+    padding: 12px 30px;
+    text-decoration: none;
+    border-radius: 8px;
+    display: inline-block;
+}
+
+.actions .btn:hover {
+    background: #218838;
+    text-decoration: none;
+    color: white;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .main-content {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .sample-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .field-note {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('fileInput');
+    const dropZone = document.getElementById('dropZone');
+    const selectedFileDiv = document.getElementById('selectedFile');
+    const fileNameSpan = document.getElementById('fileName');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const uploadForm = document.getElementById('uploadForm');
+    
+    // ガイドタブ切り替え
+    const guideTabs = document.querySelectorAll('.guide-tab');
+    const guideContents = document.querySelectorAll('.guide-content');
+    
+    guideTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            guideTabs.forEach(t => t.classList.remove('active'));
+            guideContents.forEach(c => c.classList.remove('active'));
+            
+            this.classList.add('active');
+            const targetContent = document.getElementById(this.dataset.guide + '-guide');
+            if (targetContent) {
+                targetContent.classList.add('active');
+            }
+        });
+    });
+    
+    // ファイル選択処理
+    fileInput.addEventListener('change', function() {
+        handleFileSelect(this.files[0]);
+    });
+    
+    // ドラッグ&ドロップ処理
+    dropZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('drag-over');
+    });
+    
+    dropZone.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        this.classList.remove('drag-over');
+    });
+    
+    dropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('drag-over');
+        
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            handleFileSelect(file);
+        }
+    });
+    
+    // ファイル選択処理
+    function handleFileSelect(file) {
+        if (!file) return;
+        
+        const fileName = file.name.toLowerCase();
+        const validFormats = ['.xlsx', '.xls', '.csv'];
+        const isValid = validFormats.some(format => fileName.endsWith(format));
+        
+        if (!isValid) {
+            alert('Excel (.xlsx, .xls) または CSV (.csv) ファイルを選択してください。');
+            return;
+        }
+        
+        // ファイル情報表示
+        fileNameSpan.textContent = file.name;
+        dropZone.querySelector('.drop-content').style.display = 'none';
+        selectedFileDiv.style.display = 'block';
+        uploadBtn.disabled = false;
+        
+        // ファイル入力に設定
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        fileInput.files = dataTransfer.files;
+    }
+    
+    // ファイル削除
+    window.removeFile = function() {
+        fileInput.value = '';
+        selectedFileDiv.style.display = 'none';
+        dropZone.querySelector('.drop-content').style.display = 'block';
+        uploadBtn.disabled = true;
+    };
+    
+    // フォーム送信処理
+    uploadForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (!fileInput.files.length) {
+            alert('ファイルを選択してください。');
+            return;
+        }
+        
+        handleUpload();
+    });
+    
+    function handleUpload() {
+        const formData = new FormData(uploadForm);
+        const statusSection = document.getElementById('uploadStatus');
+        const statusContent = document.getElementById('statusContent');
+        
+        // 処理状況表示
+        statusSection.style.display = 'block';
+        statusContent.innerHTML = '<div class="loading">📤 ファイルをアップロード中...<br>しばらくお待ちください</div>';
+        
+        // アップロードボタン無効化
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = '処理中...';
+        
+        // AJAX送信
+        fetch('{{ url_for("admin.bulk_import_faq") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                statusContent.innerHTML = `
+                    <div class="error">
+                        <h4>❌ 取り込みに失敗しました</h4>
+                        <p>${data.error}</p>
+                        <p><strong>解決方法：</strong></p>
+                        <ul>
+                            <li>ファイルの形式を確認してください</li>
+                            <li>必須項目（title、question、answer）が入力されているか確認してください</li>
+                            <li>サンプルファイルを参考に修正してください</li>
+                        </ul>
+                    </div>
+                `;
+            } else {
+                let resultHtml = `
+                    <div class="success">
+                        <h4>✅ 取り込み完了しました！</h4>
+                        <p><strong>${data.imported_count}件</strong>のFAQが追加されました。</p>
+                    </div>
+                `;
+                
+                if (data.errors && data.errors.length > 0) {
+                    resultHtml += `
+                        <div class="warning">
+                            <h4>⚠️ 一部のデータでエラーがありました</h4>
+                            <p>以下の行は取り込まれませんでした：</p>
+                            <ul>
+                                ${data.errors.slice(0, 5).map(error => `<li>${error}</li>`).join('')}
+                            </ul>
+                            ${data.errors.length > 5 ? `<p>他 ${data.errors.length - 5} 件のエラーがありました。</p>` : ''}
+                        </div>
+                    `;
+                }
+                
+                resultHtml += `
+                    <div class="actions">
+                        <a href="{{ url_for('admin.faq_list') }}" class="btn">
+                            📋 FAQ一覧を確認する
+                        </a>
+                    </div>
+                `;
+                
+                statusContent.innerHTML = resultHtml;
+            }
+        })
+        .catch(error => {
+            statusContent.innerHTML = `
+                <div class="error">
+                    <h4>❌ 通信エラーが発生しました</h4>
+                    <p>インターネット接続を確認して、もう一度お試しください。</p>
+                    <p><strong>エラー詳細:</strong> ${error.message}</p>
+                </div>
+            `;
+        })
+        .finally(() => {
+            // ボタンを元に戻す
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = '⬆️ アップロード';
+        });
+    }
+    
+    // サンプルファイルダウンロード
+    window.downloadExcelSample = function() {
+        const csvContent = `title,question,answer,category,keywords
+パスワードを忘れた,パスワードを忘れてしまいました,管理者にお申し出ください。新しいパスワードを発行いたします。,基本操作,パスワード・忘れた・再発行
+ログインできない,ログインができません,ユーザーIDとパスワードを確認してください。それでも解決しない場合は管理者までご連絡ください。,基本操作,ログイン・エラー・ID・パスワード
+システムが重い,システムの動作が重いです,ブラウザを再起動してお試しください。改善しない場合は他のブラウザをお試しください。,トラブル,重い・遅い・動作・ブラウザ`;
+        
+        downloadFile(csvContent, 'FAQサンプル.csv', 'text/csv;charset=utf-8');
+    };
+    
+    window.downloadCSVSample = function() {
+        const csvContent = `title,question,answer,category,keywords
+パスワードを忘れた,パスワードを忘れてしまいました,管理者にお申し出ください。新しいパスワードを発行いたします。,基本操作,パスワード・忘れた・再発行
+ログインできない,ログインができません,ユーザーIDとパスワードを確認してください。それでも解決しない場合は管理者までご連絡ください。,基本操作,ログイン・エラー・ID・パスワード
+システムが重い,システムの動作が重いです,ブラウザを再起動してお試しください。改善しない場合は他のブラウザをお試しください。,トラブル,重い・遅い・動作・ブラウザ`;
+        
+        downloadFile(csvContent, 'FAQサンプル.csv', 'text/csv;charset=utf-8');
+    };
+    
+    function downloadFile(content, filename, contentType) {
+        const blob = new Blob(['\ufeff' + content], { type: contentType }); // BOM付きUTF-8
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+});
+</script>
+{% endblock %}
