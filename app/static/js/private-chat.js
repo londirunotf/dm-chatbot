@@ -235,7 +235,7 @@ function getSenderInfo(message) {
         case 'staff':
             return {
                 icon: '👨‍💼',
-                name: message.staff_name || 'サポートスタッフ'
+                name: message.staff_name || '管理者'
             };
         case 'bot':
             return {
