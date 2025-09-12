@@ -11,6 +11,14 @@
                     <span class="label">総ユーザー数</span>
                 </div>
             </div>
+            <a href="{{ url_for('admin.user_backup') }}" class="btn btn-secondary">
+                <span class="btn-icon">💾</span>
+                バックアップ
+            </a>
+            <a href="{{ url_for('admin.user_restore') }}" class="btn btn-warning">
+                <span class="btn-icon">🔄</span>
+                復元
+            </a>
             <a href="{{ url_for('admin.user_add') }}" class="btn btn-primary">
                 <span class="btn-icon">+</span>
                 ユーザー追加
