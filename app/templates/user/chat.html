@@ -91,7 +91,6 @@
                            onkeyup="searchFAQ(this.value)">
                 </div>
             </div>
-
             
             <div class="faq-list" id="faqList">
                 {% if faqs and faqs|length > 0 %}
@@ -152,24 +151,7 @@
                     </div>
                 </div>
 
-                <!-- よくある質問クイックアクセス -->
-                <div class="quick-faq-access" id="quickFaqAccess">
-                    <div class="quick-faq-title">💡 よくある質問</div>
-                    <div class="quick-faq-buttons" id="quickFaqButtons">
-                        <button type="button" class="quick-faq-btn" data-search="送信権限">
-                            🔐 送信権限について
-                        </button>
-                        <button type="button" class="quick-faq-btn" data-search="エラー">
-                            ⚠️ エラーが発生したら
-                        </button>
-                        <button type="button" class="quick-faq-btn" data-search="ログイン">
-                            🔑 ログインできない
-                        </button>
-                        <button type="button" class="quick-faq-btn" data-search="ファイル">
-                            📁 ファイルについて
-                        </button>
-                    </div>
-                </div>
+                <!-- よくある質問クイックアクセス削除 -->
                 
                 <!-- 入力エリア -->
                 <div class="chat-input-area">
