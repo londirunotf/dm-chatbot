@@ -1,0 +1,368 @@
+{% extends "admin/base.html" %}
+
+{% block title %}ユーザーデータ復元 - 管理画面{% endblock %}
+
+{% block content %}
+<div class="user-restore-container">
+    <div class="page-header">
+        <h2>🔄 ユーザーデータ復元</h2>
+        <div class="header-actions">
+            <a href="{{ url_for('admin.user_list') }}" class="btn btn-secondary">
+                ← ユーザー一覧に戻る
+            </a>
+        </div>
+    </div>
+
+    <div class="restore-info">
+        <div class="info-card">
+            <h3>📋 復元について</h3>
+            <ul>
+                <li>バックアップしたJSONファイルからユーザーデータを復元できます</li>
+                <li>既存のユーザー（同じユーザーID）はスキップされます</li>
+                <li>復元したユーザーのパスワードはデフォルト値に設定されます</li>
+                <li>管理者アカウントは復元されません</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <form method="POST" enctype="multipart/form-data" class="restore-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="form-section">
+                <h3 class="section-title">復元ファイル選択</h3>
+                
+                <div class="form-row">
+                    <div class="form-group required">
+                        <label for="backup_file" class="form-label">
+                            <span class="label-text">バックアップファイル</span>
+                            <span class="required-badge">必須</span>
+                        </label>
+                        <input type="file" 
+                               id="backup_file" 
+                               name="backup_file" 
+                               class="form-file"
+                               accept=".json"
+                               required>
+                        <div class="form-help">user_backup_で始まるJSONファイルを選択してください</div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group required">
+                        <label for="default_password" class="form-label">
+                            <span class="label-text">デフォルトパスワード</span>
+                            <span class="required-badge">必須</span>
+                        </label>
+                        <input type="password" 
+                               id="default_password" 
+                               name="default_password" 
+                               class="form-input" 
+                               value="password123"
+                               placeholder="復元ユーザーのデフォルトパスワード"
+                               minlength="6"
+                               required>
+                        <div class="form-help">復元されるすべてのユーザーに設定されるパスワードです</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="warning-section">
+                <div class="warning-card">
+                    <h4>⚠️ 注意事項</h4>
+                    <ul>
+                        <li>復元処理は取り消しできません</li>
+                        <li>大量のユーザーデータの場合、処理に時間がかかる場合があります</li>
+                        <li>復元前に必ず現在のデータをバックアップしてください</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" 
+                        class="btn btn-secondary" 
+                        onclick="history.back()">
+                    キャンセル
+                </button>
+                <button type="submit" class="btn btn-primary btn-restore">
+                    <span class="btn-icon">🔄</span>
+                    データを復元
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.user-restore-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.page-header h2 {
+    color: #00695C;
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.restore-info {
+    margin-bottom: 30px;
+}
+
+.info-card, .warning-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.info-card {
+    border-left: 4px solid #00BFA5;
+}
+
+.warning-card {
+    border-left: 4px solid #FF9800;
+    background: #FFF8E1;
+}
+
+.info-card h3, .warning-card h4 {
+    margin: 0 0 15px 0;
+    color: #333;
+}
+
+.info-card ul, .warning-card ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.info-card li, .warning-card li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.form-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.restore-form {
+    padding: 30px;
+}
+
+.form-section {
+    margin-bottom: 30px;
+}
+
+.section-title {
+    color: #00695C;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 20px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #00BFA5;
+    display: inline-block;
+}
+
+.form-row {
+    margin-bottom: 25px;
+}
+
+.form-group {
+    position: relative;
+}
+
+.form-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+}
+
+.required-badge {
+    background: linear-gradient(135deg, #FF5722, #D32F2F);
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-input, .form-file {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.form-input:focus, .form-file:focus {
+    outline: none;
+    border-color: #00BFA5;
+    box-shadow: 0 0 0 3px rgba(0, 191, 165, 0.1);
+}
+
+.form-help {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+    line-height: 1.4;
+}
+
+.warning-section {
+    margin-bottom: 30px;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 120px;
+    justify-content: center;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #00BFA5, #00897B);
+    color: white;
+    box-shadow: 0 4px 16px rgba(0, 191, 165, 0.3);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #00897B, #00695C);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 191, 165, 0.4);
+}
+
+.btn-secondary {
+    background: #f5f5f5;
+    color: #666;
+    border: 2px solid #e0e0e0;
+}
+
+.btn-secondary:hover {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.btn-restore {
+    background: linear-gradient(135deg, #FF9800, #F57C00);
+}
+
+.btn-restore:hover {
+    background: linear-gradient(135deg, #F57C00, #E65100);
+}
+
+.btn-icon {
+    font-size: 16px;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .user-restore-container {
+        margin: 0 10px;
+    }
+    
+    .page-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+    
+    .restore-form {
+        padding: 20px;
+    }
+    
+    .form-actions {
+        flex-direction: column-reverse;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('.restore-form');
+    const fileInput = document.getElementById('backup_file');
+    const restoreBtn = document.querySelector('.btn-restore');
+    
+    // ファイル選択時のバリデーション
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            if (!file.name.endsWith('.json')) {
+                alert('JSONファイルを選択してください');
+                this.value = '';
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) { // 5MB制限
+                alert('ファイルサイズが大きすぎます（5MB以下）');
+                this.value = '';
+                return;
+            }
+        }
+    });
+    
+    // フォーム送信時の確認
+    form.addEventListener('submit', function(e) {
+        const confirmed = confirm(
+            'ユーザーデータを復元しますか？\n\n' +
+            '※この操作は取り消しできません。\n' +
+            '※処理に時間がかかる場合があります。'
+        );
+        
+        if (!confirmed) {
+            e.preventDefault();
+            return;
+        }
+        
+        // 送信ボタンを無効化
+        restoreBtn.disabled = true;
+        restoreBtn.innerHTML = '<span class="btn-icon">⏳</span>復元中...';
+        
+        // タイムアウト設定（30秒後に警告）
+        setTimeout(() => {
+            if (restoreBtn.disabled) {
+                alert('処理に時間がかかっています。しばらくお待ちください。');
+            }
+        }, 30000);
+    });
+});
+</script>
+{% endblock %}
