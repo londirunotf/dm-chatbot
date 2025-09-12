@@ -1377,3 +1377,159 @@ def analytics_test():
         import traceback
         traceback.print_exc()
         return f"Analytics test error: {e}"
+
+# ユーザーデータバックアップ・復元機能
+@admin_bp.route('/users/backup')
+@admin_required
+def user_backup():
+    """ユーザーデータをJSONでバックアップ"""
+    try:
+        # 全ユーザーデータを取得（パスワード以外）
+        users = User.query.all()
+        backup_data = {
+            'backup_date': datetime.utcnow().isoformat(),
+            'backup_type': 'users',
+            'users': []
+        }
+        
+        for user in users:
+            if user.user_id != 'admin':  # 管理者は除外
+                user_data = {
+                    'identifier': user.identifier,
+                    'user_id': user.user_id,
+                    'display_name': user.display_name,
+                    'user_type': user.user_type,
+                    'department': user.department,
+                    'is_anonymous': user.is_anonymous,
+                    'is_admin': user.is_admin,
+                    'created_at': user.created_at.isoformat() if user.created_at else None
+                }
+                backup_data['users'].append(user_data)
+        
+        # JSON形式でダウンロード
+        response = make_response(json.dumps(backup_data, indent=2, ensure_ascii=False))
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        response.headers['Content-Disposition'] = f'attachment; filename="user_backup_{datetime.utcnow().strftime("%Y%m%d_%H%M%S")}.json"'
+        
+        return response
+        
+    except Exception as e:
+        print(f"User backup error: {e}")
+        flash('バックアップに失敗しました', 'error')
+        return redirect(url_for('admin.user_list'))
+
+@admin_bp.route('/users/restore', methods=['GET', 'POST'])
+@admin_required 
+def user_restore():
+    """ユーザーデータを復元"""
+    if request.method == 'POST':
+        try:
+            # アップロードされたファイルを取得
+            if 'backup_file' not in request.files:
+                flash('ファイルが選択されていません', 'error')
+                return render_template('admin/user_restore.html')
+            
+            file = request.files['backup_file']
+            if file.filename == '':
+                flash('ファイルが選択されていません', 'error')
+                return render_template('admin/user_restore.html')
+            
+            # JSONファイルを読み込み
+            try:
+                backup_data = json.loads(file.read().decode('utf-8'))
+            except json.JSONDecodeError:
+                flash('無効なJSONファイルです', 'error')
+                return render_template('admin/user_restore.html')
+            
+            if 'users' not in backup_data:
+                flash('無効なバックアップファイルです', 'error')
+                return render_template('admin/user_restore.html')
+            
+            # デフォルトパスワード設定
+            default_password = request.form.get('default_password', 'password123')
+            
+            restored_count = 0
+            skipped_count = 0
+            
+            # ユーザーを復元
+            for user_data in backup_data['users']:
+                try:
+                    # 既存ユーザーをチェック
+                    existing_user = User.query.filter_by(user_id=user_data.get('user_id')).first()
+                    if existing_user:
+                        skipped_count += 1
+                        continue
+                    
+                    # 新しいユーザーを作成
+                    new_user = User(
+                        identifier=user_data.get('identifier'),
+                        user_id=user_data.get('user_id'),
+                        display_name=user_data.get('display_name'),
+                        user_type=user_data.get('user_type', 'user'),
+                        department=user_data.get('department'),
+                        is_anonymous=user_data.get('is_anonymous', False),
+                        is_admin=user_data.get('is_admin', False)
+                    )
+                    
+                    # デフォルトパスワードを設定
+                    new_user.set_password(default_password)
+                    
+                    db.session.add(new_user)
+                    restored_count += 1
+                    
+                except Exception as user_error:
+                    print(f"User restore error for {user_data.get('user_id', 'unknown')}: {user_error}")
+                    continue
+            
+            db.session.commit()
+            
+            flash(f'ユーザーデータを復元しました（復元: {restored_count}件, スキップ: {skipped_count}件）', 'success')
+            return redirect(url_for('admin.user_list'))
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"User restore error: {e}")
+            flash('復元に失敗しました', 'error')
+    
+    return render_template('admin/user_restore.html')
+
+@admin_bp.route('/system/init-with-backup')
+@admin_required
+def init_with_backup():
+    """システム初期化時に自動復元する設定を作成"""
+    try:
+        # バックアップファイルの存在チェック
+        backup_file_path = '/app/user_backup_latest.json'  # Renderでのパス
+        
+        if os.path.exists(backup_file_path):
+            with open(backup_file_path, 'r', encoding='utf-8') as f:
+                backup_data = json.load(f)
+                
+            restored_count = 0
+            for user_data in backup_data.get('users', []):
+                existing_user = User.query.filter_by(user_id=user_data.get('user_id')).first()
+                if not existing_user:
+                    new_user = User(
+                        identifier=user_data.get('identifier'),
+                        user_id=user_data.get('user_id'),
+                        display_name=user_data.get('display_name'),
+                        user_type=user_data.get('user_type', 'user'),
+                        department=user_data.get('department'),
+                        is_anonymous=user_data.get('is_anonymous', False),
+                        is_admin=user_data.get('is_admin', False)
+                    )
+                    new_user.set_password('password123')  # デフォルトパスワード
+                    db.session.add(new_user)
+                    restored_count += 1
+                    
+            db.session.commit()
+            flash(f'バックアップから{restored_count}件のユーザーを復元しました', 'success')
+        else:
+            flash('バックアップファイルが見つかりません', 'warning')
+            
+        return redirect(url_for('admin.dashboard'))
+        
+    except Exception as e:
+        print(f"Init with backup error: {e}")
+        flash('自動復元に失敗しました', 'error')
+        return redirect(url_for('admin.dashboard'))
